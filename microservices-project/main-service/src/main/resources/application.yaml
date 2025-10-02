@@ -1,0 +1,102 @@
+# profiles: test,local,dev,stg,prod
+
+spring:
+  application:
+    name: main-service
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:gym_crm
+    username: admin
+    password: 12345
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+
+storage:
+  training-types:
+    path: static/training-types.json
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+auth:
+  jwt:
+    secret-key: bGViZCtw0fI7UBWsFlOzXeRhDoZDrT4L3oSGt8+gvA4=
+    access-token-expiration: 900 # 15 minutes
+    refresh-token-expiration: 86400 # 24 hours
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %+5level ${PID} --- [${spring.application.name}] [%+15.15thread]  [%6.6X{traceId}] %-40.40logger{39} : %msg%n"
+
+server:
+  port: 8080
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: local,test
+
+storage:
+  trainees:
+    path: static/small-sample/trainees.json
+  trainers:
+    path: static/small-sample/trainers.json
+  trainings:
+    path: static/small-sample/trainings.json
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: dev,stg
+
+storage:
+  trainees:
+    path: static/large-sample/trainees.json
+  trainers:
+    path: static/large-sample/trainers.json
+  trainings:
+    path: static/large-sample/trainings.json
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: local,test,dev
+
+logging:
+  level:
+    com:
+      crm:
+        gym: DEBUG
+  user-credentials:
+    show-username: true
+    show-password: true
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: stg,prod
+
+logging:
+  level:
+    com:
+      crm:
+        gym: INFO
+  user-credentials:
+    show-username: true
+    show-password: false

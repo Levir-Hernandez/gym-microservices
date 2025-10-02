@@ -1,0 +1,32 @@
+[
+  {
+    "firstname": "John",
+    "lastname": "Doe",
+    "isActive": true,
+    "specialization": "Fitness"
+  },
+  {
+    "firstname": "Jane",
+    "lastname": "Smith",
+    "isActive": true,
+    "specialization": "Yoga"
+  },
+  {
+    "firstname": "Mike",
+    "lastname": "Johnson",
+    "isActive": true,
+    "specialization": "Yoga"
+  },
+  {
+    "firstname": "Laura",
+    "lastname": "Williams",
+    "isActive": true,
+    "specialization": "Zumba"
+  },
+  {
+    "firstname": "Tom",
+    "lastname": "Anderson",
+    "isActive": false,
+    "specialization": "Stretching"
+  }
+]

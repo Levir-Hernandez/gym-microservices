@@ -1,0 +1,37 @@
+[
+  {
+    "firstname": "Alice",
+    "lastname": "Smith",
+    "isActive": true,
+    "birthdate": "1990-06-15",
+    "address": "123 Main St"
+  },
+  {
+    "firstname": "Bob",
+    "lastname": "Johnson",
+    "isActive": true,
+    "birthdate": "1985-11-20",
+    "address": "456 Elm St"
+  },
+  {
+    "firstname": "Charlie",
+    "lastname": "Brown",
+    "isActive": true,
+    "birthdate": "1995-03-08",
+    "address": "789 Oak St"
+  },
+  {
+    "firstname": "Diana",
+    "lastname": "Miller",
+    "isActive": false,
+    "birthdate": "1992-09-25",
+    "address": "321 Pine St"
+  },
+  {
+    "firstname": "Ethan",
+    "lastname": "Davis",
+    "isActive": false,
+    "birthdate": "1988-01-14",
+    "address": "654 Cedar Ave"
+  }
+]

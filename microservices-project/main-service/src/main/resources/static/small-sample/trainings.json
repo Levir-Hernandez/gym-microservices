@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Full Body Fitness",
+    "date": "2025-06-07",
+    "duration": 60,
+    "trainee": "Alice.Smith",
+    "trainer": "John.Doe",
+    "trainingType": "Fitness"
+  },
+  {
+    "name": "HIIT Strength",
+    "date": "2025-06-15",
+    "duration": 55,
+    "trainee": "Alice.Smith",
+    "trainer": "John.Doe",
+    "trainingType": "Fitness"
+  },
+  {
+    "name": "Morning Yoga Flow",
+    "date": "2025-06-21",
+    "duration": 45,
+    "trainee": "Alice.Smith",
+    "trainer": "Jane.Smith",
+    "trainingType": "Yoga"
+  },
+  {
+    "name": "Zumba Party",
+    "date": "2025-06-25",
+    "duration": 30,
+    "trainee": "Charlie.Brown",
+    "trainer": "Laura.Williams",
+    "trainingType": "Zumba"
+  },
+  {
+    "name": "Deep Stretch Session",
+    "date": "2025-07-05",
+    "duration": 50,
+    "trainee": "Diana.Miller",
+    "trainer": "Tom.Anderson",
+    "trainingType": "Stretching"
+  },
+  {
+    "name": "Stretch & Recover",
+    "date": "2025-07-10",
+    "duration": 35,
+    "trainee": "Ethan.Davis",
+    "trainer": "Tom.Anderson",
+    "trainingType": "Stretching"
+  }
+]

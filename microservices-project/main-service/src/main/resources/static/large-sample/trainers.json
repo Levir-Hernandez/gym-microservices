@@ -1,0 +1,17 @@
+[
+  { "firstname": "John", "lastname": "Doe", "isActive": true, "specialization": "Fitness" },
+  { "firstname": "Jane", "lastname": "Smith", "isActive": true, "specialization": "Yoga" },
+  { "firstname": "Mike", "lastname": "Johnson", "isActive": true, "specialization": "Yoga" },
+  { "firstname": "Laura", "lastname": "Williams", "isActive": true, "specialization": "Zumba" },
+  { "firstname": "Tom", "lastname": "Anderson", "isActive": false, "specialization": "Stretching" },
+  { "firstname": "Emily", "lastname": "Clark", "isActive": true, "specialization": "Fitness" },
+  { "firstname": "Brian", "lastname": "Lewis", "isActive": true, "specialization": "Resistance" },
+  { "firstname": "Sara", "lastname": "Hall", "isActive": false, "specialization": "Zumba" },
+  { "firstname": "David", "lastname": "Allen", "isActive": true, "specialization": "Stretching" },
+  { "firstname": "Olivia", "lastname": "Young", "isActive": true, "specialization": "Resistance" },
+  { "firstname": "James", "lastname": "Wright", "isActive": false, "specialization": "Yoga" },
+  { "firstname": "Chloe", "lastname": "King", "isActive": true, "specialization": "Zumba" },
+  { "firstname": "Daniel", "lastname": "Scott", "isActive": true, "specialization": "Fitness" },
+  { "firstname": "Sophie", "lastname": "Green", "isActive": true, "specialization": "Stretching" },
+  { "firstname": "Liam", "lastname": "Baker", "isActive": false, "specialization": "Resistance" }
+]
