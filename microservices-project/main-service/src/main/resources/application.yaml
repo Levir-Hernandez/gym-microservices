@@ -8,10 +8,20 @@ spring:
     url: jdbc:h2:mem:gym_crm
     username: admin
     password: 12345
-  cloud:
-    openfeign:
-      circuitbreaker:
-        enabled: true
+  activemq:
+    broker-url: tcp://localhost:61616
+    user: admin
+    password: admin
+    queues:
+      trainer-workload:
+        get-one-request: trainer.workload.get_one.request.queue
+        get-one-response: trainer.workload.get_one.response.queue
+        get-all-request: trainer.workload.get_all.request.queue
+        get-all-response: trainer.workload.get_all.response.queue
+        update-request: trainer.workload.update.request.queue
+  jms:
+    template:
+      receive-timeout: 1000 # 1 second
 
 storage:
   training-types:

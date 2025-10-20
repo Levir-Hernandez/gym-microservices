@@ -4,7 +4,6 @@ import com.crm.gym.api.util.PasswordGenerator;
 import com.crm.gym.api.util.PasswordGeneratorImpl;
 import com.crm.gym.api.util.UsernameGenerator;
 import com.crm.gym.api.util.UsernameGeneratorImpl;
-import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Lazy;
@@ -40,7 +39,8 @@ public class UtilConfig {
     }
 
     @Bean
-    public ObjectMapper objectMapper() {
+    public ObjectMapper objectMapper()
+    {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         return mapper;

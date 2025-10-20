@@ -1,6 +1,6 @@
 package com.crm.gym.api.controllers;
 
-import com.crm.gym.api.controllers.exceptions.ResourceNotFoundException;
+import com.crm.gym.api.exceptions.ResourceNotFoundException;
 import com.crm.gym.api.dtos.assemblers.TraineeModelAssembler;
 import com.crm.gym.api.dtos.mappers.implementations.TraineeMapperImpl;
 import com.crm.gym.api.dtos.trainee.*;

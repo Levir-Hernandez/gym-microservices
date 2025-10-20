@@ -1,7 +1,7 @@
 package com.crm.gym.api.config;
 
-import com.crm.gym.api.auth.exceptions.GlobalExceptionHandler;
-import com.crm.gym.api.auth.exceptions.PermissionDeniedException;
+import com.crm.gym.api.exceptions.GlobalExceptionHandler;
+import com.crm.gym.api.exceptions.PermissionDeniedException;
 import com.crm.gym.api.auth.filters.GlobalExceptionHandlerFilter;
 import com.crm.gym.api.auth.filters.JwtAuthFilter;
 import com.crm.gym.api.auth.services.JwtTokenService;
@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -25,7 +24,6 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 

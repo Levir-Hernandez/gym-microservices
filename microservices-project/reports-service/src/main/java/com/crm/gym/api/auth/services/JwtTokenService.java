@@ -1,6 +1,6 @@
 package com.crm.gym.api.auth.services;
 
-import com.crm.gym.api.auth.exceptions.InvalidTokenException;
+import com.crm.gym.api.exceptions.InvalidTokenException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;

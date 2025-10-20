@@ -19,7 +19,7 @@
     <description>gym CRM microservices system</description>
 
     <modules>
-        <module>eureka-server</module>
+        <module>activemq-server</module>
         <module>main-service</module>
         <module>reports-service</module>
     </modules>

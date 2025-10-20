@@ -1,6 +1,6 @@
 package com.crm.gym.api.auth.filters;
 
-import com.crm.gym.api.auth.exceptions.GlobalExceptionHandler;
+import com.crm.gym.api.exceptions.GlobalExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

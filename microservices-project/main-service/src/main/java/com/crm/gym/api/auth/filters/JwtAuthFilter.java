@@ -2,8 +2,8 @@ package com.crm.gym.api.auth.filters;
 
 import com.crm.gym.api.auth.services.JwtTokenService;
 import com.crm.gym.api.auth.services.TokenBlacklistService;
-import com.crm.gym.api.controllers.exceptions.UnexpectedTokenTypeException;
-import com.crm.gym.api.controllers.exceptions.RevokedTokenException;
+import com.crm.gym.api.exceptions.UnexpectedTokenTypeException;
+import com.crm.gym.api.exceptions.RevokedTokenException;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

@@ -1,6 +1,5 @@
 package com.crm.gym.api.dtos;
 
-import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

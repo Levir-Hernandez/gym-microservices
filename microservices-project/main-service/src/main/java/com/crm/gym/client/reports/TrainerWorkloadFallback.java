@@ -5,25 +5,19 @@ import org.springframework.http.ResponseEntity;
 import com.crm.gym.client.reports.dtos.TrainerWorkloadRequest;
 import com.crm.gym.client.reports.dtos.TrainerWorkloadSummary;
 
-import org.springframework.stereotype.Component;
-
-@Component
-public class TrainerWorkloadFallback implements TrainerWorkloadClient
+public interface TrainerWorkloadFallback
 {
-    @Override
-    public ResponseEntity<List<TrainerWorkloadSummary>> getAllTrainersWorkloads()
-    {
-        return ResponseEntity.ok(List.of());
-    }
-
-    @Override
-    public ResponseEntity<TrainerWorkloadSummary> getTrainerWorkloadByUsername(String trainerUsername)
+    default ResponseEntity<TrainerWorkloadSummary> fallbackForGetTrainerWorkloadByUsername(String trainerUsername, Throwable throwable)
     {
         return ResponseEntity.ok(new TrainerWorkloadSummary());
     }
 
-    @Override
-    public ResponseEntity<Void> updateTrainerWorkload(TrainerWorkloadRequest trainerWorkloadRequest)
+    default ResponseEntity<List<TrainerWorkloadSummary>> fallbackForGetAllTrainersWorkloads(Throwable throwable)
+    {
+        return ResponseEntity.ok(List.of());
+    }
+
+    default ResponseEntity<Void> fallbackForUpdateTrainerWorkload(TrainerWorkloadRequest trainerWorkloadRequest, Throwable throwable)
     {
         return ResponseEntity.ok().build();
     }

@@ -9,7 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.server.ResponseStatusException;
-import com.crm.gym.api.controllers.exceptions.GlobalExceptionHandler;
+import com.crm.gym.api.exceptions.GlobalExceptionHandler;
 
 public class GlobalExceptionHandlerFilter extends OncePerRequestFilter
 {

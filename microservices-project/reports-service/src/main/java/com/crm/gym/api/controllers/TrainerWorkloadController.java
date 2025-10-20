@@ -25,11 +25,11 @@ import java.util.Objects;
 @Tag(name = "Trainers' Workloads", description = "Operations related to trainers' workloads")
 public class TrainerWorkloadController
 {
-    private TrainerWorkloadService service;
+    private TrainerWorkloadService trainerWorkloadService;
 
-    public TrainerWorkloadController(TrainerWorkloadService service)
+    public TrainerWorkloadController(TrainerWorkloadService trainerWorkloadService)
     {
-        this.service = service;
+        this.trainerWorkloadService = trainerWorkloadService;
     }
 
     // +. Get all Trainers' Workload summaries
@@ -46,7 +46,7 @@ public class TrainerWorkloadController
     @GetMapping("/workloads")
     public ResponseEntity<List<TrainerWorkloadSummary>> getAllTrainersWorkloads()
     {
-        return ResponseEntity.ok(service.getAllTrainersWorkloads());
+        return ResponseEntity.ok(trainerWorkloadService.getAllTrainersWorkloads());
     }
 
     // +. Get Trainer Workload Summary
@@ -67,7 +67,7 @@ public class TrainerWorkloadController
             @PathVariable String trainerUsername
     )
     {
-        TrainerWorkloadSummary workload = service.getTrainerWorkloadByUsername(trainerUsername);
+        TrainerWorkloadSummary workload = trainerWorkloadService.getTrainerWorkloadByUsername(trainerUsername);
 
         if(Objects.isNull(workload)) {return ResponseEntity.notFound().build();}
         else {return ResponseEntity.ok(workload);}
@@ -94,7 +94,7 @@ public class TrainerWorkloadController
     {
         switch (trainerWorkloadRequest.getActionType())
         {
-            case ActionType.ADD -> service.increaseTrainerWorkload(
+            case ActionType.ADD -> trainerWorkloadService.increaseTrainerWorkload(
                     trainerWorkloadRequest.getTrainerUsername(),
                     trainerWorkloadRequest.getTrainerFirstname(),
                     trainerWorkloadRequest.getTrainerLastname(),
@@ -102,7 +102,7 @@ public class TrainerWorkloadController
                     trainerWorkloadRequest.getTrainingDate(),
                     trainerWorkloadRequest.getTrainingDuration()
             );
-            case ActionType.DELETE -> service.decreaseTrainerWorkload(
+            case ActionType.DELETE -> trainerWorkloadService.decreaseTrainerWorkload(
                     trainerWorkloadRequest.getTrainerUsername(),
                     trainerWorkloadRequest.getTrainingDate(),
                     trainerWorkloadRequest.getTrainingDuration()
