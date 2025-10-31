@@ -1,35 +1,12 @@
 package com.crm.gym.api.repositories;
 
+import org.springframework.data.mongodb.repository.MongoRepository;
 import com.crm.gym.api.entities.TrainerWorkloadSummary;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 @Repository
-public class TrainerWorkloadRepository
+public interface TrainerWorkloadRepository extends MongoRepository<TrainerWorkloadSummary, String>
 {
-    private Map<String, TrainerWorkloadSummary> entities;
-
-    public TrainerWorkloadRepository()
-    {
-        entities = new HashMap<>();
-    }
-
-    public TrainerWorkloadSummary save(TrainerWorkloadSummary summary)
-    {
-        return entities.put(summary.getTrainerUsername(), summary);
-    }
-
-    public TrainerWorkloadSummary findByTrainerUsername(String trainerUsername)
-    {
-        return entities.get(trainerUsername);
-    }
-
-    public List<TrainerWorkloadSummary> findAll()
-    {
-        return new ArrayList<>(entities.values());
-    }
+    TrainerWorkloadSummary findByTrainerUsername(String trainerUsername);
+    TrainerWorkloadSummary findByTrainerFirstnameAndTrainerLastname(String trainerFirstname, String trainerLastname);
 }

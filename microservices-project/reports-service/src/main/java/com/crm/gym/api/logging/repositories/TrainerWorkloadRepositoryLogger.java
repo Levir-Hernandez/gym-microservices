@@ -36,9 +36,9 @@ public class TrainerWorkloadRepositoryLogger
     @Around("within_TrainerWorkloadRepository() && save()")
     public TrainerWorkloadSummary around_save(ProceedingJoinPoint jp) throws Throwable
     {
-        logger.info("Saving Trainer workload summary into in-memory database");
+        logger.info("Saving Trainer workload summary into database");
         TrainerWorkloadSummary trainerWorkloadSummary = (TrainerWorkloadSummary) jp.proceed();
-        logger.info("Stored Trainer workload summary into in-memory database");
+        logger.info("Stored Trainer workload summary into database");
 
         return trainerWorkloadSummary;
     }
@@ -52,7 +52,7 @@ public class TrainerWorkloadRepositoryLogger
         TrainerWorkloadSummary trainerWorkloadSummary = (TrainerWorkloadSummary) jp.proceed();
         if(Objects.nonNull(trainerWorkloadSummary))
         {
-            logger.info("Fetching Trainer {} workload summary from in-memory database", trainerUsername);
+            logger.info("Fetching Trainer {} workload summary from database", trainerUsername);
         }
         else
         {
