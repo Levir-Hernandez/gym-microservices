@@ -3,9 +3,8 @@ package com.crm.gym.api.services;
 import com.crm.gym.api.entities.TrainerWorkloadSummary;
 import com.crm.gym.api.repositories.TrainerWorkloadRepository;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -20,15 +19,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@Tag("unit")
 @SpringBootTest
 @ActiveProfiles("test")
 class TrainerWorkloadServiceTest
 {
-    @Autowired
-    private TrainerWorkloadService trainerWorkloadService;
+    @Autowired private TrainerWorkloadService trainerWorkloadService;
 
-    @MockitoBean
-    private TrainerWorkloadRepository trainerWorkloadRepository;
+    @MockitoBean private TrainerWorkloadRepository trainerWorkloadRepository;
 
     @Test
     @DisplayName("Should increase workload for an existing Trainer")

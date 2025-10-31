@@ -1,170 +1,230 @@
 package com.crm.gym.api.services;
 
+import com.crm.gym.api.config.TrainerServiceTestConfig;
 import com.crm.gym.api.entities.Trainer;
-import com.crm.gym.api.services.TrainerService;
+import com.crm.gym.api.entities.TrainingType;
+import com.crm.gym.api.repositories.interfaces.TraineeRepository;
+import com.crm.gym.api.repositories.interfaces.TrainerRepository;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-@SpringBootTest
+@Tag("unit")
 @ActiveProfiles("test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(classes = TrainerServiceTestConfig.class)
 class TrainerServiceTest
 {
-    private TrainerService trainerService;
-    private PasswordEncoder passwordEncoder;
+    @Autowired private TrainerService trainerService;
+    @Autowired private PasswordEncoder passwordEncoder;
 
-    @Autowired
-    public TrainerServiceTest(TrainerService trainerService, PasswordEncoder passwordEncoder)
+    @MockitoBean private TrainerRepository trainerRepository;
+    @MockitoBean private TraineeRepository traineeRepository;
+    @Captor private ArgumentCaptor<Trainer> trainerCaptor;
+
+    private static Trainer trainerMock;
+    private static Trainer trainerSavedMock;
+    private static Trainer trainerUpdatedMock;
+
+    @BeforeAll
+    static void beforeAll(@Autowired PasswordEncoder passwordEncoder)
     {
-        this.trainerService = trainerService;
-        this.passwordEncoder = passwordEncoder;
+        TrainingType trainingType1 = new TrainingType(UUID.randomUUID(), "Fitness");
+        TrainingType trainingType2 = new TrainingType(UUID.randomUUID(), "Yoga");
+
+        UUID trainerMockId = UUID.randomUUID();
+
+        Trainer unsavedTrainer = new Trainer(null,
+                "Charlie", "Brown",
+                null, null,
+                true, trainingType1);
+
+        String trainerMockEncodedPassword = passwordEncoder.encode("0123456789");
+
+        Trainer savedTrainer = new Trainer(trainerMockId,
+                "Charlie", "Brown",
+                "Charlie.Brown", trainerMockEncodedPassword,
+                true, trainingType1);
+
+        Trainer updatedTrainer = new Trainer(trainerMockId,
+                "Chuck", "Brownie",
+                "Charlie.Brown", trainerMockEncodedPassword,
+                true, trainingType2);
+
+        trainerMock = unsavedTrainer;
+        trainerSavedMock = savedTrainer;
+        trainerUpdatedMock = updatedTrainer;
     }
 
     @Test
     @DisplayName("Should generate (id,username,password) and save Trainer")
     void saveEntity()
     {
-        int totalTrainers = trainerService.getAllEntities().size();
+        when(trainerRepository.create(any())).thenAnswer(inv -> {
+            // Simulates JPA behavior
+            Trainer trainerToSave = safeMutableMockOf(inv.getArgument(0)); // managed copy
+            trainerToSave.setId(UUID.randomUUID()); // auto-generated id
+            return trainerToSave;
+        });
 
-        Trainer trainer = new Trainer(null,
-                "Larry", "Williams",
-                null, null,
-                true, null);
-
-        Trainer trainerResult = trainerService.saveEntity(trainer);
+        Trainer trainerResult = trainerService.saveEntity(trainerMock);
 
         assertNotNull(trainerResult.getId());
         assertNotNull(trainerResult.getUsername());
         assertNotNull(trainerResult.getPassword());
 
-        int actualTrainers = trainerService.getAllEntities().size();
-        assertEquals(totalTrainers+1, actualTrainers);
+        // captures trainer before persistence to extract encoded password
+        verify(trainerRepository).create(trainerCaptor.capture());
+
+        String rawPassword = trainerResult.getPassword();
+        String encodedPassword = trainerCaptor.getValue().getPassword();
+        assertTrue(passwordEncoder.matches(rawPassword, encodedPassword));
     }
 
     @Test
     @DisplayName("Should update existing Trainer")
     void updateEntity()
     {
-        UUID id = trainerService.getUserByUsername("Larry.Williams").getId();
-        Trainer newTrainerInfo = new Trainer(null,
-                "Larry", "Williams",
-                "Willy", "secret1234",
-                false, null);
+        UUID id = trainerSavedMock.getId();
+        AtomicReference<Trainer> storedTrainer = new AtomicReference<>(trainerSavedMock);
+        when(trainerRepository.findById(id))
+                .thenAnswer(inv -> Optional.of(storedTrainer.get()));
+        when(trainerRepository.update(id, trainerUpdatedMock)).thenAnswer(inv -> {
+            storedTrainer.set(trainerUpdatedMock);
+            return trainerUpdatedMock;
+        });
 
         Trainer oldTrainer = trainerService.getEntityById(id);
+        assertNotEquals(trainerUpdatedMock, oldTrainer);
 
-        assertNotEquals(newTrainerInfo, oldTrainer);
-
-        trainerService.updateEntity(id, newTrainerInfo);
+        trainerService.updateEntity(id, trainerUpdatedMock);
         Trainer newTrainer = trainerService.getEntityById(id);
 
         assertNotEquals(oldTrainer, newTrainer);
-        assertEquals(newTrainerInfo, newTrainer);
+        assertEquals(trainerUpdatedMock, newTrainer);
+
+        verify(trainerRepository, times(2)).findById(id);
+        verify(trainerRepository).update(id, trainerUpdatedMock);
     }
 
     @Test
     @DisplayName("Should not update non existing Trainer")
     void updateEntity2()
     {
-        int totalTrainers = trainerService.getAllEntities().size();
         UUID nonExistentId = UUID.randomUUID();
-
-        Trainer newTrainerInfo = new Trainer(null,
-                "Larry", "Williams",
-                "Willy", "secret1234",
-                false, null);
 
         Trainer oldTrainer = trainerService.getEntityById(nonExistentId);
         assertNull(oldTrainer);
 
-        trainerService.updateEntity(nonExistentId, newTrainerInfo);
+        trainerService.updateEntity(nonExistentId, trainerUpdatedMock);
 
         Trainer newTrainer = trainerService.getEntityById(nonExistentId);
         assertNull(newTrainer);
 
-        int actualTrainers = trainerService.getAllEntities().size();
-        assertEquals(totalTrainers, actualTrainers);
+        verify(trainerRepository, times(2)).findById(nonExistentId);
+        verify(trainerRepository).update(nonExistentId, trainerUpdatedMock);
     }
 
     @Test
     @DisplayName("Should update existing Trainer by username")
     void updateUserByUsername()
     {
-        String username = "Larry.Williams";
-        Trainer newTrainerInfo = new Trainer(null,
-                "Larry", "Williams",
-                "Willy", "secret1234",
-                false, null);
+        String trainerUpdatedMockUsername = trainerSavedMock.getUsername();
+        AtomicReference<Trainer> storedTrainer = new AtomicReference<>(trainerSavedMock);
+        when(trainerRepository.findByUsername(trainerUpdatedMockUsername))
+                .thenAnswer(inv -> Optional.of(storedTrainer.get()));
+        when(trainerRepository.updateByUsername(trainerUpdatedMockUsername, trainerUpdatedMock)).thenAnswer(inv -> {
+            storedTrainer.set(trainerUpdatedMock);
+            return trainerUpdatedMock;
+        });
 
-        Trainer oldTrainer = trainerService.getUserByUsername(username);
+        Trainer oldTrainer = trainerService.getUserByUsername(trainerUpdatedMockUsername);
+        assertNotEquals(trainerUpdatedMock, oldTrainer);
 
-        assertNotEquals(newTrainerInfo, oldTrainer);
-
-        trainerService.updateUserByUsername(username, newTrainerInfo);
-        Trainer newTrainer = trainerService.getUserByUsername(username);
+        trainerService.updateUserByUsername(trainerUpdatedMockUsername, trainerUpdatedMock);
+        Trainer newTrainer = trainerService.getUserByUsername(trainerUpdatedMockUsername);
 
         assertNotEquals(oldTrainer, newTrainer);
-        assertEquals(newTrainerInfo, newTrainer);
+        assertEquals(trainerUpdatedMock, newTrainer);
+
+        verify(trainerRepository, times(2)).findByUsername(trainerUpdatedMockUsername);
+        verify(trainerRepository).updateByUsername(trainerUpdatedMockUsername, trainerUpdatedMock);
     }
 
     @Test
     @DisplayName("Should not update non existing Trainer by username")
     void updateUserByUsername2()
     {
-        int totalTrainers = trainerService.getAllEntities().size();
-        String username = "Unknown.Unknown";
+        String nonExistentUsername = "Unknown.Unknown";
 
-        Trainer newTrainerInfo = new Trainer(null,
-                "Larry", "Williams",
-                "Willy", "secret1234",
-                false, null);
-
-        Trainer oldTrainer = trainerService.getUserByUsername(username);
+        Trainer oldTrainer = trainerService.getUserByUsername(nonExistentUsername);
         assertNull(oldTrainer);
 
-        trainerService.updateUserByUsername(username, newTrainerInfo);
+        trainerService.updateUserByUsername(nonExistentUsername, trainerUpdatedMock);
 
-        Trainer newTrainer = trainerService.getUserByUsername(username);
+        Trainer newTrainer = trainerService.getUserByUsername(nonExistentUsername);
         assertNull(newTrainer);
 
-        int actualTrainers = trainerService.getAllEntities().size();
-        assertEquals(totalTrainers, actualTrainers);
+        verify(trainerRepository, times(2)).findByUsername(nonExistentUsername);
+        verify(trainerRepository).updateByUsername(nonExistentUsername, trainerUpdatedMock);
     }
 
     @Test
     @DisplayName("Should retrieve an existent Trainer")
     void getEntityById()
     {
-        Trainer trainer = new Trainer(null,
-                "Larry", "Williams",
-                null, null,
-                true, null);
+        UUID trainerSavedMockId = trainerSavedMock.getId();
+        AtomicReference<Trainer> storedTrainer = new AtomicReference<>(trainerSavedMock);
+        when(trainerRepository.findById(trainerSavedMockId)).thenAnswer(inv ->
+                Optional.ofNullable(storedTrainer.get())
+        );
+        when(trainerRepository.deleteIfExists(trainerSavedMockId)).thenAnswer(inv -> {
+            storedTrainer.set(null);
+            return true;
+        });
 
-        Trainer trainerExpected = trainerService.saveEntity(trainer);
+        Trainer trainer = trainerService.getEntityById(trainerSavedMockId);
+        assertNotNull(trainer);
 
-        UUID id = trainerExpected.getId();
-        Trainer trainerActual = trainerService.getEntityById(id);
+        boolean deleted = trainerService.deleteEntity(trainerSavedMockId);
+        assertTrue(deleted);
 
-        String rawPassword = trainerExpected.getPassword();
-        String encodedPassword = trainerActual.getPassword();
+        trainer = trainerService.getEntityById(trainerSavedMockId);
+        assertNull(trainer);
 
-        assertTrue(passwordEncoder.matches(rawPassword, encodedPassword));
-
-        trainerActual.setPassword(rawPassword);
-
-        assertEquals(trainerExpected, trainerActual);
+        verify(trainerRepository, times(2)).findById(trainerSavedMockId);
+        verify(trainerRepository).deleteIfExists(trainerSavedMockId);
     }
 
     @Test
@@ -174,136 +234,196 @@ class TrainerServiceTest
         UUID nonExistentId = UUID.randomUUID();
         Trainer trainer = trainerService.getEntityById(nonExistentId);
         assertNull(trainer);
+
+        verify(trainerRepository).findById(nonExistentId);
     }
 
     @Test
     @DisplayName("Should retrieve an existent Trainer by username")
     void getUserByUsername1()
     {
-        Trainer trainerExpected = trainerService.getAllEntities().get(0);
+        String trainerSavedMockUsername = trainerSavedMock.getUsername();
+        when(trainerRepository.findByUsername(trainerSavedMockUsername)).thenReturn(Optional.of(trainerSavedMock));
 
-        String username = "John.Doe";
-        Trainer trainerActual = trainerService.getUserByUsername(username);
-
-        assertEquals(trainerExpected, trainerActual);
+        Trainer trainerActual = trainerService.getUserByUsername(trainerSavedMockUsername);
+        assertEquals(trainerSavedMock, trainerActual);
+        verify(trainerRepository).findByUsername(trainerSavedMockUsername);
     }
 
     @Test
     @DisplayName("Should return null for non existent Trainer by username")
     void getUserByUsername2()
     {
-        String username = "Unknown.Unknown";
-        Trainer trainer = trainerService.getUserByUsername(username);
+        String nonExistentUsername = "Unknown.Unknown";
+        Trainer trainer = trainerService.getUserByUsername(nonExistentUsername);
         assertNull(trainer);
+
+        verify(trainerRepository).findByUsername(nonExistentUsername);
     }
 
     @Test
     @DisplayName("Should activate an inactive Trainer by username")
     void activateUser()
     {
-        Trainer trainer = trainerService.getUserByUsername("Tom.Anderson");
+        Trainer trainerSavedMock = safeMutableMockOf(TrainerServiceTest.trainerSavedMock);
+        trainerSavedMock.setIsActive(false);
+
+        String trainerSavedMockUsername = trainerSavedMock.getUsername();
+        when(trainerRepository.findByUsername(trainerSavedMockUsername)).thenReturn(Optional.of(trainerSavedMock));
+
+        Trainer trainer = trainerService.getUserByUsername(trainerSavedMockUsername);
         assertFalse(trainer.getIsActive());
 
-        trainerService.activateUser("Tom.Anderson");
+        trainerService.activateUser(trainerSavedMockUsername);
 
-        trainer = trainerService.getUserByUsername("Tom.Anderson");
+        trainer = trainerService.getUserByUsername(trainerSavedMockUsername);
         assertTrue(trainer.getIsActive());
+
+        verify(trainerRepository, atLeast(2)).findByUsername(trainerSavedMockUsername);
+        verify(trainerRepository).save(any());
     }
 
     @Test
     @DisplayName("Should deactivate an active Trainer by username")
     void deactivateUser()
     {
-        Trainer trainer = trainerService.getUserByUsername("Tom.Anderson");
+        Trainer trainerSavedMock = safeMutableMockOf(TrainerServiceTest.trainerSavedMock);
+        trainerSavedMock.setIsActive(true);
+
+        String trainerSavedMockUsername = trainerSavedMock.getUsername();
+        when(trainerRepository.findByUsername(trainerSavedMockUsername)).thenReturn(Optional.of(trainerSavedMock));
+
+        Trainer trainer = trainerService.getUserByUsername(trainerSavedMockUsername);
         assertTrue(trainer.getIsActive());
 
-        trainerService.deactivateUser("Tom.Anderson");
+        trainerService.deactivateUser(trainerSavedMockUsername);
 
-        trainer = trainerService.getUserByUsername("Tom.Anderson");
+        trainer = trainerService.getUserByUsername(trainerSavedMockUsername);
         assertFalse(trainer.getIsActive());
+
+        verify(trainerRepository, atLeast(2)).findByUsername(trainerSavedMockUsername);
+        verify(trainerRepository).save(any());
     }
 
     @Test
     @DisplayName("Should login return true when username and password match")
     void login()
     {
-        Trainer trainer = new Trainer(null,
-                "Derek", "Foster",
-                null, null,
-                false, null);
+        String trainerSavedMockUsername = trainerSavedMock.getUsername();
+        String trainerSavedMockRawPassword = "0123456789";
 
-        trainer = trainerService.saveEntity(trainer);
+        when(trainerRepository.findByUsername(trainerSavedMockUsername)).thenReturn(Optional.of(trainerSavedMock));
 
-        String username = trainer.getUsername();
-        String password = trainer.getPassword();
-
-        boolean logged = trainerService.login(username, password);
-
+        boolean logged = trainerService.login(trainerSavedMockUsername, trainerSavedMockRawPassword);
         assertTrue(logged);
+        verify(trainerRepository).findByUsername(trainerSavedMockUsername);
     }
 
     @Test
     @DisplayName("Should login return false when username or password is incorrect")
     void login2()
     {
-        Trainer trainer = new Trainer(null,
-                "Ashley", "Johnson",
-                null, null,
-                false, null);
+        String trainerSavedMockUsername = trainerSavedMock.getUsername();
+        String trainerSavedMockRawPassword = "0123456789";
 
-        trainer = trainerService.saveEntity(trainer);
-
-        String username = trainer.getUsername();
-        String password = trainer.getPassword();
+        when(trainerRepository.findByUsername(trainerSavedMockUsername)).thenReturn(Optional.of(trainerSavedMock));
 
         boolean logged;
 
-        logged = trainerService.login("Unknown.Unknown", password);
+        logged = trainerService.login("Unknown.Unknown", trainerSavedMockRawPassword);
         assertFalse(logged);
 
-        logged = trainerService.login(username, "regularPassword");
+        logged = trainerService.login(trainerSavedMockUsername, "regularPassword");
         assertFalse(logged);
+
+        verify(trainerRepository, times(2)).findByUsername(any());
     }
 
     @Test
     @DisplayName("Should retrieve active Trainers unassigned to the given Trainee")
     void getAllUnassignedForTraineeByUsername()
     {
-        String username = "Alice.Smith";
+        Trainer trainerSavedMock1 = safeMutableMockOf(trainerSavedMock);
+        trainerSavedMock1.setUsername("Mike.Johnson");
 
-        List<Trainer> expectedUnassignedTrainers = List.of(
-                trainerService.getUserByUsername("Mike.Johnson"),
-                trainerService.getUserByUsername("Laura.Williams")
-        );
+        Trainer trainerSavedMock2 = safeMutableMockOf(trainerSavedMock);
+        trainerSavedMock2.setUsername("Laura.Williams");
 
-        List<Trainer> actualUnassignedTrainers = trainerService.getAllUnassignedForTraineeByUsername(username);
+        List<Trainer> trainersFoundMock = List.of(trainerSavedMock1, trainerSavedMock2);
 
-        assertThat(actualUnassignedTrainers).containsExactlyInAnyOrderElementsOf(expectedUnassignedTrainers);
+        String traineeUsername = "Alice.Smith";
+        when(traineeRepository.existsByUsername(traineeUsername)).thenReturn(true);
+        when(trainerRepository.findAllUnassignedForTraineeByUsername(traineeUsername)).thenReturn(trainersFoundMock);
+
+        List<Trainer> actualUnassignedTrainers = trainerService.getAllUnassignedForTraineeByUsername(traineeUsername);
+        assertThat(actualUnassignedTrainers).containsExactlyInAnyOrderElementsOf(trainersFoundMock);
+
+        verify(traineeRepository).existsByUsername(traineeUsername);
+        verify(trainerRepository).findAllUnassignedForTraineeByUsername(traineeUsername);
     }
 
     @Test
     @DisplayName("Should update multiple Trainers assigned to a Trainee")
     public void updateAssignedTrainersForTrainee()
     {
-        String username = "Alice.Smith";
+        // ARRANGE MOCKS
+
+        Trainer trainerSavedMock1 = safeMutableMockOf(TrainerServiceTest.trainerSavedMock);
+        trainerSavedMock1.setFirstname("John"); trainerSavedMock1.setUsername("John.Doe");
+
+        Trainer trainerSavedMock2 = safeMutableMockOf(TrainerServiceTest.trainerSavedMock);
+        trainerSavedMock2.setFirstname("Jane"); trainerSavedMock2.setUsername("Jane.Smith");
+
+        Map<String, Trainer> storedTrainers = new HashMap<>();
+        storedTrainers.put(trainerSavedMock1.getUsername(), trainerSavedMock1);
+        storedTrainers.put(trainerSavedMock2.getUsername(), trainerSavedMock2);
+
+        when(trainerRepository.findByUsername(any())).thenAnswer(inv ->
+                Optional.ofNullable(storedTrainers.get(inv.getArgument(0)))
+                        .map(this::safeMutableMockOf)
+        );
+
+        Trainer trainerUpdatedMock1 = safeMutableMockOf(trainerSavedMock1);
+        trainerUpdatedMock1.setFirstname("Johnny");
+
+        Trainer trainerUpdatedMock2 = safeMutableMockOf(trainerSavedMock2);
+        trainerUpdatedMock2.setFirstname("Jennette");
+
+        String traineeUsername = "Alice.Smith";
+        Set<Trainer> trainersToUpdate = Set.of(trainerUpdatedMock1, trainerUpdatedMock2);
+
+        when(traineeRepository.existsByUsername(traineeUsername)).thenReturn(true);
+        when(trainerRepository.updateAssignedTrainersForTrainee(traineeUsername, trainersToUpdate))
+        .thenAnswer(inv -> {
+            trainersToUpdate.stream()
+                    .forEach(trainer -> storedTrainers.replace(trainer.getUsername(), trainer));
+            return trainersToUpdate;
+        });
+
+        // ACT AND ASSERT
+
         Trainer trainer1, trainer2;
-
         trainer1 = trainerService.getUserByUsername("John.Doe");
         trainer2 = trainerService.getUserByUsername("Jane.Smith");
 
-        assertNotEquals("Johnny", trainer1.getFirstname());
-        assertNotEquals("Jennette", trainer2.getFirstname());
+        assertEquals("John", trainer1.getFirstname());
+        assertEquals("Jane", trainer2.getFirstname());
 
-        trainer1.setFirstname("Johnny");
-        trainer2.setFirstname("Jennette");
+        trainerService.updateAssignedTrainersForTrainee(traineeUsername, trainersToUpdate);
 
-        Set<Trainer> trainersToUpdate = Set.of(trainer1, trainer2);
-        trainerService.updateAssignedTrainersForTrainee(username, trainersToUpdate);
+        trainerUpdatedMock1 = trainerService.getUserByUsername("John.Doe");
+        trainerUpdatedMock2 = trainerService.getUserByUsername("Jane.Smith");
 
-        trainer1 = trainerService.getUserByUsername("John.Doe");
-        trainer2 = trainerService.getUserByUsername("Jane.Smith");
+        assertEquals("Johnny", trainerUpdatedMock1.getFirstname());
+        assertEquals("Jennette", trainerUpdatedMock2.getFirstname());
 
-        assertEquals("Johnny", trainer1.getFirstname());
-        assertEquals("Jennette", trainer2.getFirstname());
+        verify(traineeRepository).existsByUsername(traineeUsername);
+        verify(trainerRepository, times(4)).findByUsername(any());
+        verify(trainerRepository).updateAssignedTrainersForTrainee(traineeUsername, trainersToUpdate);
+    }
+
+    private Trainer safeMutableMockOf(Trainer trainer)
+    {
+        return new Trainer(trainer.getId(), trainer.getFirstname(), trainer.getLastname(), trainer.getUsername(), trainer.getPassword(), trainer.getIsActive(), trainer.getSpecialization());
     }
 }

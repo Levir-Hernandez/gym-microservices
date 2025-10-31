@@ -1,6 +1,10 @@
 spring:
   application:
     name: reports-service
+  data:
+    mongodb:
+      database: reports
+      auto-index-creation: true
   activemq:
     broker-url: tcp://localhost:61616
     user: admin
@@ -28,9 +32,24 @@ auth:
     access-token-expiration: 900 # 15 minutes
     refresh-token-expiration: 86400 # 24 hours
 
+de:
+  flapdoodle:
+    mongodb:
+      embedded:
+        version: 7.0.2 # For local testing without docker-compose
+
 logging:
   pattern:
     console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %+5level ${PID} --- [${spring.application.name}] [%+15.15thread]  [%6.6X{traceId}] %-40.40logger{39} : %msg%n"
 
 server:
   port: 8081
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: docker
+  activemq:
+    broker-url: tcp://activemq-server:61616  # For integration testing only

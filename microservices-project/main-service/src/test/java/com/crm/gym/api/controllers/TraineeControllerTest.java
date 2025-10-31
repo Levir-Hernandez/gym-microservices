@@ -1,57 +1,64 @@
 package com.crm.gym.api.controllers;
 
-import com.crm.gym.api.dtos.trainee.*;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
-import org.junit.jupiter.api.BeforeAll;
+import com.crm.gym.api.dtos.trainee.TraineeChangePasswordRequest;
+import com.crm.gym.api.dtos.trainee.TraineeLoginRequest;
+import com.crm.gym.api.dtos.trainee.TraineeModificationRequest;
+import com.crm.gym.api.dtos.trainee.TraineeRegistrationRequest;
+import com.crm.gym.api.entities.Trainee;
+import com.crm.gym.api.repositories.interfaces.TraineeRepository;
+import com.crm.gym.api.services.TraineeService;
+import com.crm.gym.api.util.EntityResourceLoader;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
+import java.util.List;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.AdditionalAnswers.returnsFirstArg;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@Tag("unit")
+@SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class TraineeControllerTest
 {
-    private static String ACCESS_TOKEN;
+    @Autowired private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    public TraineeControllerTest(TraineeController traineeController)
-    {
-        TraineeRegistrationRequest traineeRegistrationRequest = new TraineeRegistrationRequest();
-        traineeRegistrationRequest.setFirstname("user");
-        traineeRegistrationRequest.setLastname("test");
-
-        TraineeTokenWrapper traineeRespDto = (TraineeTokenWrapper) traineeController.createTrainee(traineeRegistrationRequest).getContent();
-
-        ACCESS_TOKEN = traineeRespDto.getAccessToken();
-
-        TraineeChangePasswordRequest traineeChangePasswordRequest = new TraineeChangePasswordRequest();
-        traineeChangePasswordRequest.setUsername(traineeRespDto.getUsername());
-        traineeChangePasswordRequest.setOldPassword(((TraineeCredentials)traineeRespDto.getUser()).getPassword());
-        traineeChangePasswordRequest.setNewPassword("1234");
-
-        traineeController.changePassword(traineeChangePasswordRequest);
-    }
-
-    @BeforeAll
-    static void beforeAll()
-    {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = 8080;
-    }
+    @MockitoSpyBean private TraineeService traineeService;
+    @MockitoBean private TraineeRepository traineeRepository;
+    @MockitoBean private EntityResourceLoader entityResourceLoader;
 
     @Test
-    @DisplayName("Tests HTTP 200 & 400 on POST /trainees")
-    void createTrainee()
+    @DisplayName("Tests HTTP 201 & 400 on POST /trainees")
+    @WithMockUser(username = "Trainee.User", roles = "TRAINEE")
+    void createTrainee() throws Exception
     {
         String traineeFirstname = "Larry";
         String traineeLastname = "Williams";
@@ -62,82 +69,72 @@ class TraineeControllerTest
         traineeDto.setBirthdate(LocalDate.parse("1991-03-21"));
         traineeDto.setAddress("123 Harlem St");
 
-        // 200 OK
+        when(traineeRepository.create(any())).thenAnswer(returnsFirstArg());
 
-        given()
-            .accept(ContentType.JSON)
-            .body(traineeDto)
-            .contentType(ContentType.JSON)
-        .when()
-            .post("/trainees")
-        .then()
-            .statusCode(201)
-            .rootPath("trainee")
-            .body("username", equalTo(traineeFirstname+"."+traineeLastname));
+        // 201 CREATED
+
+        mockMvc.perform(post("/trainees")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(traineeDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.trainee.username").value(traineeFirstname+"."+traineeLastname));
+
+        verify(traineeRepository).create(any());
 
         // 400 BAD_REQUEST
 
         traineeDto.setFirstname(null);
 
-        given()
-            .accept(ContentType.JSON)
-            .body(traineeDto)
-            .contentType(ContentType.JSON)
-        .when()
-            .post("/trainees")
-        .then()
-            .statusCode(400);
+        mockMvc.perform(post("/trainees")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(traineeDto)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
     @DisplayName("Tests HTTP 200 on GET /trainees")
-    void getAllTrainees()
+    @WithMockUser(username = "Trainee.User", roles = "TRAINEE")
+    void getAllTrainees() throws Exception
     {
-        given()
-            .header("Authorization", "Bearer " + ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .get("/trainees")
-        .then()
-            .statusCode(200);
+        when(traineeService.getAllEntities(Mockito.any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/trainees")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
     }
 
     @Test
     @DisplayName("Tests HTTP 200 & 404 on GET /trainees/{username}")
-    void getTraineeByUsername()
+    @WithMockUser(username = "Trainee.User", roles = "TRAINEE")
+    void getTraineeByUsername() throws Exception
     {
+        String username = "Alice.Smith";
+        Trainee trainee = new Trainee(username);
+        trainee.setFirstname("Alice");
+        trainee.setLastname("Smith");
+        trainee.setTrainings(List.of());
+
+        when(traineeService.getUserByUsername(username)).thenReturn(trainee);
+
         // 200 OK
+        mockMvc.perform(get("/trainees/{username}", username))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.firstname").value("Alice"))
+                .andExpect(jsonPath("$.lastname").value("Smith"));
 
-        String firstname = "Alice";
-        String lastname = "Smith";
-        String username = firstname+"."+lastname;
-
-        given()
-            .header("Authorization", "Bearer " + ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .get("/trainees/{username}", username)
-        .then()
-            .statusCode(200)
-            .body("firstname", equalTo(firstname))
-            .body("lastname", equalTo(lastname));
-
-        // 400 NOT_FOUND
+        // 404 NOT_FOUND
 
         username = "Unknown.Unknown";
 
-        given()
-            .header("Authorization", "Bearer " + ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .get("/trainees/{username}", username)
-        .then()
-            .statusCode(404);
+        mockMvc.perform(get("/trainees/{username}", username))
+                .andExpect(status().isNotFound());
     }
 
     @Test
     @DisplayName("Tests HTTP 200 & 400 on PUT /trainees/{username}")
-    void updateTraineeByUsername()
+    @WithMockUser(username = "Trainee.User", roles = "TRAINEE")
+    void updateTraineeByUsername() throws Exception
     {
         String username = "Diana.Miller";
         String newTraineeFirstname = "Dina";
@@ -149,183 +146,146 @@ class TraineeControllerTest
         traineeDto.setAddress("123 Magnolia St");
         traineeDto.setIsActive(false);
 
-        // 200 OK
+        when(traineeRepository.updateByUsername(any(), any())).thenAnswer(inv -> {
+            Trainee t = inv.getArgument(1);
+            t.setUsername(inv.getArgument(0));
+            t.setTrainings(List.of());
+            return t;
+        });
 
-        given()
-            .header("Authorization", "Bearer " + ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-            .body(traineeDto)
-            .contentType(ContentType.JSON)
-        .when()
-            .put("/trainees/{username}", username)
-        .then()
-            .statusCode(200)
-            .body("firstname", equalTo(newTraineeFirstname))
-            .body("lastname", equalTo(newTraineeLastname));
+        // 200 OK
+        mockMvc.perform(put("/trainees/{username}", username)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(traineeDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.firstname").value("Dina"))
+                .andExpect(jsonPath("$.lastname").value("Merrill"));
 
         // 400 BAD_REQUEST
 
         traineeDto.setFirstname(null);
 
-        given()
-            .header("Authorization", "Bearer " + ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-            .body(traineeDto)
-            .contentType(ContentType.JSON)
-        .when()
-            .put("/trainees/{username}", username)
-        .then()
-            .statusCode(400);
+        mockMvc.perform(put("/trainees/{username}", username)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(traineeDto)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
     @DisplayName("Tests HTTP 200 & 404 on PATCH /trainees/{username}/activate")
-    void activateTrainee()
+    @WithMockUser(username = "Trainee.User", roles = "TRAINEE")
+    void activateTrainee() throws Exception
     {
+        String username = "Alice.Smith";
+
         // 200 OK
 
-        String username = "Alice.Smith";
-        given()
-            .header("Authorization", "Bearer " + ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .patch("/trainees/{username}/activate", username)
-        .then()
-            .statusCode(200);
+        when(traineeService.activateUser(username)).thenReturn(true);
+        mockMvc.perform(patch("/trainees/{username}/activate", username))
+                .andExpect(status().isOk());
 
         // 404 NOT_FOUND
 
-        username = "Unknown.Unknown";
-        given()
-            .header("Authorization", "Bearer " + ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .patch("/trainees/{username}/activate", username)
-        .then()
-            .statusCode(404);
+        mockMvc.perform(patch("/trainees/{username}/activate", "Unknown.Unknown"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
     @DisplayName("Tests HTTP 200 & 404 on PATCH /trainees/{username}/deactivate")
-    void deactivateTrainee()
+    @WithMockUser(username = "Trainee.User", roles = "TRAINEE")
+    void deactivateTrainee() throws Exception
     {
+        String username = "Alice.Smith";
+
         // 200 OK
 
-        String username = "Alice.Smith";
-        given()
-            .header("Authorization", "Bearer " + ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .patch("/trainees/{username}/deactivate", username)
-        .then()
-            .statusCode(200);
+        when(traineeService.deactivateUser(username)).thenReturn(true);
+        mockMvc.perform(patch("/trainees/{username}/deactivate", username))
+                .andExpect(status().isOk());
 
         // 404 NOT_FOUND
 
-        username = "Unknown.Unknown";
-        given()
-            .header("Authorization", "Bearer " + ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .patch("/trainees/{username}/activate", username)
-        .then()
-            .statusCode(404);
+        mockMvc.perform(patch("/trainees/{username}/deactivate", "Unknown.Unknown"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
     @DisplayName("Tests HTTP 204 & 404 on DELETE /trainees/{username}")
-    void deleteTraineeByUsername()
+    @WithMockUser(username = "Trainee.User", roles = "TRAINEE")
+    void deleteTraineeByUsername() throws Exception
     {
-        // 204 NO_CONTENT
-
         String username = "Ethan.Davis";
-        given()
-            .header("Authorization", "Bearer " + ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .delete("/trainees/{username}", username)
-        .then()
-            .statusCode(204);
+        when(traineeService.deleteTraineeByUsername(username)).thenReturn(true);
+
+        // 204 NO_CONTENT
+        mockMvc.perform(delete("/trainees/{username}", username))
+                .andExpect(status().isNoContent());
 
         // 404 NOT_FOUND
-
-        username = "Unknown.Unknown";
-        given()
-            .header("Authorization", "Bearer " + ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .delete("/trainees/{username}", username)
-        .then()
-            .statusCode(404);
+        when(traineeService.deleteTraineeByUsername("Unknown.Unknown")).thenReturn(false);
+        mockMvc.perform(delete("/trainees/{username}", "Unknown.Unknown"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("Tests HTTP 200 & 401 on POST trainees/login")
-    void login()
+    @DisplayName("Tests HTTP 200 & 401 on POST /trainees/login")
+    void login() throws Exception
     {
-        TraineeLoginRequest traineeDto = new TraineeLoginRequest();
+        when(traineeService.login("Trainee.User", "0123456789"))
+                .thenReturn(true);
+
+        when(traineeService.login("invalid.invalid", "invalid"))
+                .thenReturn(false);
+
+        TraineeLoginRequest request = new TraineeLoginRequest();
+        request.setUsername("Trainee.User");
+        request.setPassword("0123456789");
 
         // 200 OK
-
-        traineeDto.setUsername("user.test");
-        traineeDto.setPassword("1234");
-
-        given()
-            .accept(ContentType.JSON)
-            .body(traineeDto)
-            .contentType(ContentType.JSON)
-        .when()
-            .post("/trainees/login")
-        .then()
-            .statusCode(200);
+        mockMvc.perform(post("/trainees/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
 
         // 401 UNAUTHORIZED
 
-        traineeDto.setUsername("invalid.invalid");
-        traineeDto.setPassword("invalid");
+        request.setUsername("invalid.invalid");
+        request.setPassword("invalid");
 
-        given()
-            .accept(ContentType.JSON)
-            .body(traineeDto)
-            .contentType(ContentType.JSON)
-        .when()
-            .post("/trainees/login")
-        .then()
-            .statusCode(401);
+        mockMvc.perform(post("/trainees/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
     @DisplayName("Tests HTTP 200 & 401 on PUT trainees/change-password")
-    void changePassword()
+    void changePassword() throws Exception
     {
+        when(traineeService.changePassword("Trainee.User",
+                "0123456789", "abcdefghij"))
+                .thenReturn(true);
+
         TraineeChangePasswordRequest traineeDto = new TraineeChangePasswordRequest();
 
         // 200 OK
 
-        traineeDto.setUsername("user.test");
-        traineeDto.setOldPassword("1234");
-        traineeDto.setNewPassword("1234");
+        traineeDto.setUsername("Trainee.User");
+        traineeDto.setOldPassword("0123456789");
+        traineeDto.setNewPassword("abcdefghij");
 
-        given()
-            .accept(ContentType.JSON)
-            .body(traineeDto)
-            .contentType(ContentType.JSON)
-        .when()
-            .put("/trainees/change-password")
-        .then()
-            .statusCode(200);
+        mockMvc.perform(put("/trainees/change-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(traineeDto)))
+                .andExpect(status().isOk());
 
         // 401 UNAUTHORIZED
 
         traineeDto.setUsername("invalid.invalid");
 
-        given()
-            .accept(ContentType.JSON)
-            .body(traineeDto)
-            .contentType(ContentType.JSON)
-        .when()
-            .put("/trainees/change-password")
-        .then()
-            .statusCode(401);
+        mockMvc.perform(put("/trainees/change-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(traineeDto)))
+                .andExpect(status().isUnauthorized());
     }
 }

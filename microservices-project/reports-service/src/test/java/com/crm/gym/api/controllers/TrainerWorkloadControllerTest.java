@@ -6,6 +6,7 @@ import com.crm.gym.api.entities.TrainerWorkloadSummary;
 import com.crm.gym.api.services.TrainerWorkloadService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -30,24 +31,20 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@Tag("unit")
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class TrainerWorkloadControllerTest
 {
+    @Autowired private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockitoBean
-    private TrainerWorkloadService trainerWorkloadService;
+    @MockitoBean private TrainerWorkloadService trainerWorkloadService;
 
     @Test
     @DisplayName("Should return all trainers' workloads")
-    @WithMockUser(username = "Trainer.User", roles = {"TRAINER"})
+    @WithMockUser(username = "Trainer.User", roles = "TRAINER")
     void shouldReturnAllWorkloads() throws Exception
     {
         List<TrainerWorkloadSummary> mockList = List.of(
@@ -68,7 +65,7 @@ class TrainerWorkloadControllerTest
 
     @Test
     @DisplayName("Should return workload for single trainer")
-    @WithMockUser(username = "Trainer.User", roles = {"TRAINER"})
+    @WithMockUser(username = "Trainer.User", roles = "TRAINER")
     void shouldReturnTrainerWorkloadByUsername() throws Exception
     {
         TrainerWorkloadSummary summary = new TrainerWorkloadSummary("alice", "Alice", "Smith", true);
@@ -84,7 +81,7 @@ class TrainerWorkloadControllerTest
 
     @Test
     @DisplayName("Should increase trainer workload")
-    @WithMockUser(username = "Trainer.User", roles = {"TRAINER"})
+    @WithMockUser(username = "Trainer.User", roles = "TRAINER")
     void shouldIncreaseWorkload() throws Exception
     {
         TrainerWorkloadRequest request = new TrainerWorkloadRequest(
@@ -110,7 +107,7 @@ class TrainerWorkloadControllerTest
 
     @Test
     @DisplayName("Should decrease trainer workload")
-    @WithMockUser(username = "Trainer.User", roles = {"TRAINER"})
+    @WithMockUser(username = "Trainer.User", roles = "TRAINER")
     void shouldDecreaseWorkload() throws Exception
     {
         TrainerWorkloadRequest request = new TrainerWorkloadRequest(
@@ -135,7 +132,7 @@ class TrainerWorkloadControllerTest
 
     @Test
     @DisplayName("Should handle non-existent trainer on decrease")
-    @WithMockUser(username = "Trainer.User", roles = {"TRAINER"})
+    @WithMockUser(username = "Trainer.User", roles = "TRAINER")
     void shouldHandleNonExistentTrainerOnDecrease() throws Exception
     {
         TrainerWorkloadRequest request = new TrainerWorkloadRequest(

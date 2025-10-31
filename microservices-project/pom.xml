@@ -20,8 +20,9 @@
 
     <modules>
         <module>activemq-server</module>
-        <module>main-service</module>
         <module>reports-service</module>
+        <module>main-service</module>
+        <module>integration-tests</module>
     </modules>
 
     <properties>
@@ -31,5 +32,16 @@
         <spring-cloud.version>2024.0.0</spring-cloud.version>
         <maven.compiler.parameters>true</maven.compiler.parameters>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <lombok.version>1.18.30</lombok.version>
     </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

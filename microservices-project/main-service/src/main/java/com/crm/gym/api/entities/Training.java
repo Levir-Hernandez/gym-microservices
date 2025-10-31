@@ -36,4 +36,5 @@ public class Training implements Identifiable<UUID>
     private TrainingType trainingType;
 
     public Training(UUID id) {this.id = id;}
+    public Training(String name) {this.name = name;}
 }

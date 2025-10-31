@@ -1,53 +1,66 @@
 package com.crm.gym.api.controllers;
 
-import com.crm.gym.api.dtos.trainee.TraineeRegistrationRequest;
-import com.crm.gym.api.dtos.trainee.TraineeTokenWrapper;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
+import com.crm.gym.api.entities.TrainingType;
+import com.crm.gym.api.repositories.interfaces.TrainingTypeRepository;
+import com.crm.gym.api.util.EntityResourceLoader;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
-import static io.restassured.RestAssured.given;
+import java.util.List;
+import java.util.UUID;
 
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@Tag("unit")
+@SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 class TrainingTypeControllerTest
 {
-    private static String ACCESS_TOKEN;
+    @Autowired private MockMvc mockMvc;
+    @MockitoBean private TrainingTypeRepository trainingTypeRepository;
+    @MockitoBean private EntityResourceLoader entityResourceLoader;
 
-    @Autowired
-    public TrainingTypeControllerTest(TraineeController traineeController)
-    {
-        TraineeRegistrationRequest traineeRegistrationRequest = new TraineeRegistrationRequest();
-        traineeRegistrationRequest.setFirstname("user");
-        traineeRegistrationRequest.setLastname("test");
-
-        ACCESS_TOKEN = ((TraineeTokenWrapper) traineeController.createTrainee(traineeRegistrationRequest).getContent()).getAccessToken();
-    }
+    private static Page<TrainingType> trainingTypesMock;
 
     @BeforeAll
     static void beforeAll()
     {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = 8080;
+        TrainingType trainingType = new TrainingType(UUID.randomUUID(), "Fitness");
+        trainingTypesMock = new PageImpl<>(List.of(trainingType));
     }
 
     @Test
     @DisplayName("Tests HTTP 200 on GET /trainingTypes")
-    void getAllTrainingTypes()
+    @WithMockUser(username = "Trainer.User", roles = {"TRAINER"})
+    void getAllTrainingTypes() throws Exception
     {
-        given()
-            .header("Authorization", "Bearer " + ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .get("/trainingTypes")
-        .then()
-            .statusCode(200);
+        when(trainingTypeRepository.findAll(any(Pageable.class)))
+                .thenReturn(trainingTypesMock);
+
+        mockMvc.perform(get("/trainingTypes")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        verify(trainingTypeRepository).findAll(any(Pageable.class));
     }
 }
