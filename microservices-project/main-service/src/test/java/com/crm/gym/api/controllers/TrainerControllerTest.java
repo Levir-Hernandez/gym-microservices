@@ -1,348 +1,317 @@
 package com.crm.gym.api.controllers;
 
-import com.crm.gym.api.dtos.trainee.TraineeRegistrationRequest;
-import com.crm.gym.api.dtos.trainee.TraineeTokenWrapper;
-import com.crm.gym.api.dtos.trainer.*;
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
-import org.junit.jupiter.api.BeforeAll;
+import com.crm.gym.api.dtos.trainer.TrainerChangePasswordRequest;
+import com.crm.gym.api.dtos.trainer.TrainerLoginRequest;
+import com.crm.gym.api.dtos.trainer.TrainerModificationEmbeddedRequest;
+import com.crm.gym.api.dtos.trainer.TrainerModificationRequest;
+import com.crm.gym.api.dtos.trainer.TrainerRegistrationRequest;
+import com.crm.gym.api.entities.Trainer;
+import com.crm.gym.api.repositories.interfaces.TrainerRepository;
+import com.crm.gym.api.services.TrainerService;
+import com.crm.gym.api.util.EntityResourceLoader;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
 import java.util.Set;
 
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.AdditionalAnswers.returnsFirstArg;
+import static org.mockito.AdditionalAnswers.returnsSecondArg;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.anySet;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@Tag("unit")
+@SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class TrainerControllerTest
 {
-    private static String TRAINER_ACCESS_TOKEN;
-    private static String TRAINEE_ACCESS_TOKEN;
+    @Autowired private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    public TrainerControllerTest(TrainerController trainerController, TraineeController traineeController)
-    {
-        TrainerRegistrationRequest trainerRegistrationRequest = new TrainerRegistrationRequest();
-        trainerRegistrationRequest.setFirstname("trainer");
-        trainerRegistrationRequest.setLastname("test");
-
-        TrainerTokenWrapper trainerRespDto = (TrainerTokenWrapper) trainerController.createTrainer(trainerRegistrationRequest).getContent();
-
-        TRAINER_ACCESS_TOKEN = trainerRespDto.getAccessToken();
-
-        TrainerChangePasswordRequest trainerChangePasswordRequest = new TrainerChangePasswordRequest();
-        trainerChangePasswordRequest.setUsername(trainerRespDto.getUsername());
-        trainerChangePasswordRequest.setOldPassword(((TrainerCredentials)trainerRespDto.getUser()).getPassword());
-        trainerChangePasswordRequest.setNewPassword("1234");
-
-        trainerController.changePassword(trainerChangePasswordRequest);
-        trainerController.deactivateTrainer(trainerRespDto.getUsername());
-
-        TraineeRegistrationRequest traineeRegistrationRequest = new TraineeRegistrationRequest();
-        traineeRegistrationRequest.setFirstname("trainee");
-        traineeRegistrationRequest.setLastname("test");
-
-        TRAINEE_ACCESS_TOKEN = ((TraineeTokenWrapper)traineeController.createTrainee(traineeRegistrationRequest).getContent()).getAccessToken();
-    }
-    
-    @BeforeAll
-    static void beforeAll()
-    {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = 8080;
-    }
+    @MockitoSpyBean private TrainerService trainerService;
+    @MockitoBean private TrainerRepository trainerRepository;
+    @MockitoBean private EntityResourceLoader entityResourceLoader;
 
     @Test
-    @DisplayName("Tests HTTP 200 & 400 on POST /trainers")
-    void createTrainer()
+    @DisplayName("Tests HTTP 201 & 400 on POST /trainers")
+    @WithMockUser(username = "Trainer.User", roles = "TRAINER")
+    void createTrainer() throws Exception
     {
-        String traineeFirstname = "Larry";
-        String traineeLastname = "Williams";
+        String trainerFirstname = "Larry";
+        String trainerLastname = "Williams";
 
         TrainerRegistrationRequest trainerDto = new TrainerRegistrationRequest();
-        trainerDto.setFirstname(traineeFirstname);
-        trainerDto.setLastname(traineeLastname);
-        trainerDto.setSpecialization("Yoga");
+        trainerDto.setFirstname(trainerFirstname);
+        trainerDto.setLastname(trainerLastname);
+        trainerDto.setSpecialization("Fitness");
 
-        // 200 OK
+        when(trainerRepository.create(any())).thenAnswer(returnsFirstArg());
 
-        given()
-            .accept(ContentType.JSON)
-            .body(trainerDto)
-            .contentType(ContentType.JSON)
-        .when()
-            .post("/trainers")
-        .then()
-            .statusCode(201)
-            .rootPath("trainer")
-            .body("username", equalTo(traineeFirstname+"."+traineeLastname));
+        // 201 CREATED
+
+        mockMvc.perform(post("/trainers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(trainerDto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.trainer.username").value(trainerFirstname+"."+trainerLastname));
+
+        verify(trainerRepository).create(any());
 
         // 400 BAD_REQUEST
 
         trainerDto.setFirstname(null);
 
-        given()
-            .accept(ContentType.JSON)
-            .body(trainerDto)
-            .contentType(ContentType.JSON)
-        .when()
-            .post("/trainers")
-        .then()
-            .statusCode(400);
+        mockMvc.perform(post("/trainers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(trainerDto)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
     @DisplayName("Tests HTTP 200 on GET /trainers")
-    void getAllTrainers()
+    @WithMockUser(username = "Trainer.User", roles = "TRAINER")
+    void getAllTrainers() throws Exception
     {
-        given()
-            .header("Authorization", "Bearer " + TRAINER_ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .get("/trainers")
-        .then()
-            .statusCode(200);
+        when(trainerService.getAllEntities(Mockito.any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/trainers")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
     }
 
     @Test
     @DisplayName("Tests HTTP 200 & 404 on GET /trainers/{username}")
-    void getTrainerByUsername()
+    @WithMockUser(username = "Trainer.User", roles = "TRAINER")
+    void getTrainerByUsername() throws Exception
     {
+        String username = "Alice.Smith";
+        Trainer trainer = new Trainer(username);
+        trainer.setFirstname("Alice");
+        trainer.setLastname("Smith");
+        trainer.setTrainings(List.of());
+
+        when(trainerService.getUserByUsername(username)).thenReturn(trainer);
+
         // 200 OK
+        mockMvc.perform(get("/trainers/{username}", username))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.firstname").value("Alice"))
+                .andExpect(jsonPath("$.lastname").value("Smith"));
 
-        String firstname = "Tom";
-        String lastname = "Anderson";
-        String username = firstname+"."+lastname;
-
-        given()
-            .header("Authorization", "Bearer " + TRAINER_ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .get("/trainers/{username}", username)
-        .then()
-            .statusCode(200)
-            .body("firstname", equalTo(firstname))
-            .body("lastname", equalTo(lastname));
-
-        // 400 NOT_FOUND
+        // 404 NOT_FOUND
 
         username = "Unknown.Unknown";
 
-        given()
-            .header("Authorization", "Bearer " + TRAINER_ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .get("/trainers/{username}", username)
-        .then()
-            .statusCode(404);
+        mockMvc.perform(get("/trainers/{username}", username))
+                .andExpect(status().isNotFound());
     }
 
     @Test
     @DisplayName("Tests HTTP 200 & 400 on PUT /trainers/{username}")
-    void updateTrainerByUsername()
+    @WithMockUser(username = "Trainer.User", roles = "TRAINER")
+    void updateTrainerByUsername() throws Exception
     {
-        String username = "Laura.Williams";
-        String newTraineeFirstname = "Mary";
-        String newTraineeLastname = "Rosebud";
+        String username = "Diana.Miller";
+        String newTrainerFirstname = "Dina";
+        String newTrainerLastname = "Merrill";
         TrainerModificationRequest trainerDto = new TrainerModificationRequest();
-        trainerDto.setFirstname(newTraineeFirstname);
-        trainerDto.setLastname(newTraineeLastname);
-        trainerDto.setSpecialization("Zumba");
-        trainerDto.setIsActive(true);
+        trainerDto.setFirstname(newTrainerFirstname);
+        trainerDto.setLastname(newTrainerLastname);
+        trainerDto.setSpecialization("Fitness");
+        trainerDto.setIsActive(false);
+
+        when(trainerRepository.updateByUsername(any(), any())).thenAnswer(inv -> {
+            Trainer t = inv.getArgument(1);
+            t.setUsername(inv.getArgument(0));
+            t.setTrainings(List.of());
+            return t;
+        });
 
         // 200 OK
-
-        given()
-            .header("Authorization", "Bearer " + TRAINER_ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-            .body(trainerDto)
-            .contentType(ContentType.JSON)
-        .when()
-            .put("/trainers/{username}", username)
-        .then()
-            .statusCode(200)
-            .body("firstname", equalTo(newTraineeFirstname))
-            .body("lastname", equalTo(newTraineeLastname));
+        mockMvc.perform(put("/trainers/{username}", username)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(trainerDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.firstname").value("Dina"))
+                .andExpect(jsonPath("$.lastname").value("Merrill"));
 
         // 400 BAD_REQUEST
 
         trainerDto.setFirstname(null);
 
-        given()
-            .header("Authorization", "Bearer " + TRAINER_ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-            .body(trainerDto)
-            .contentType(ContentType.JSON)
-        .when()
-            .put("/trainers/{username}", username)
-        .then()
-            .statusCode(400);
+        mockMvc.perform(put("/trainers/{username}", username)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(trainerDto)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
     @DisplayName("Tests HTTP 200 & 404 on PATCH /trainers/{username}/activate")
-    void activateTrainer()
+    @WithMockUser(username = "Trainer.User", roles = "TRAINER")
+    void activateTrainer() throws Exception
     {
+        String username = "Alice.Smith";
+
         // 200 OK
 
-        String username = "Laura.Williams";
-        given()
-            .header("Authorization", "Bearer " + TRAINER_ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .patch("/trainers/{username}/activate", username)
-        .then()
-            .statusCode(200);
+        when(trainerService.activateUser(username)).thenReturn(true);
+        mockMvc.perform(patch("/trainers/{username}/activate", username))
+                .andExpect(status().isOk());
 
         // 404 NOT_FOUND
 
-        username = "Unknown.Unknown";
-        given()
-            .header("Authorization", "Bearer " + TRAINER_ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .patch("/trainers/{username}/activate", username)
-        .then()
-            .statusCode(404);
+        mockMvc.perform(patch("/trainers/{username}/activate", "Unknown.Unknown"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
     @DisplayName("Tests HTTP 200 & 404 on PATCH /trainers/{username}/deactivate")
-    void deactivateTrainer()
+    @WithMockUser(username = "Trainer.User", roles = "TRAINER")
+    void deactivateTrainer() throws Exception
     {
+        String username = "Alice.Smith";
+
         // 200 OK
 
-        String username = "Tom.Anderson";
-        given()
-            .header("Authorization", "Bearer " + TRAINER_ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .patch("/trainers/{username}/deactivate", username)
-        .then()
-            .statusCode(200);
+        when(trainerService.deactivateUser(username)).thenReturn(true);
+        mockMvc.perform(patch("/trainers/{username}/deactivate", username))
+                .andExpect(status().isOk());
 
         // 404 NOT_FOUND
 
-        username = "Unknown.Unknown";
-        given()
-            .header("Authorization", "Bearer " + TRAINER_ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .patch("/trainers/{username}/activate", username)
-        .then()
-            .statusCode(404);
+        mockMvc.perform(patch("/trainers/{username}/deactivate", "Unknown.Unknown"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("Tests HTTP 200 & 401 on POST trainers/login")
-    void login()
+    @DisplayName("Tests HTTP 200 & 401 on POST /trainers/login")
+    void login() throws Exception
     {
-        TrainerLoginRequest trainerDto = new TrainerLoginRequest();
+        when(trainerService.login("Trainer.User", "0123456789"))
+                .thenReturn(true);
+
+        when(trainerService.login("invalid.invalid", "invalid"))
+                .thenReturn(false);
+
+        TrainerLoginRequest request = new TrainerLoginRequest();
+        request.setUsername("Trainer.User");
+        request.setPassword("0123456789");
 
         // 200 OK
-
-        trainerDto.setUsername("trainer.test");
-        trainerDto.setPassword("1234");
-
-        given()
-            .accept(ContentType.JSON)
-            .body(trainerDto)
-            .contentType(ContentType.JSON)
-        .when()
-            .post("/trainers/login")
-        .then()
-            .statusCode(200);
+        mockMvc.perform(post("/trainers/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
 
         // 401 UNAUTHORIZED
 
-        trainerDto.setUsername("invalid.invalid");
-        trainerDto.setPassword("invalid");
+        request.setUsername("invalid.invalid");
+        request.setPassword("invalid");
 
-        given()
-            .accept(ContentType.JSON)
-            .body(trainerDto)
-            .contentType(ContentType.JSON)
-        .when()
-            .post("/trainers/login")
-        .then()
-            .statusCode(401);
+        mockMvc.perform(post("/trainers/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
     @DisplayName("Tests HTTP 200 & 401 on PUT trainers/change-password")
-    void changePassword()
+    void changePassword() throws Exception
     {
+        when(trainerService.changePassword("Trainer.User",
+                "0123456789", "abcdefghij"))
+                .thenReturn(true);
+
         TrainerChangePasswordRequest trainerDto = new TrainerChangePasswordRequest();
 
         // 200 OK
 
-        trainerDto.setUsername("trainer.test");
-        trainerDto.setOldPassword("1234");
-        trainerDto.setNewPassword("1234");
+        trainerDto.setUsername("Trainer.User");
+        trainerDto.setOldPassword("0123456789");
+        trainerDto.setNewPassword("abcdefghij");
 
-        given()
-            .accept(ContentType.JSON)
-            .body(trainerDto)
-            .contentType(ContentType.JSON)
-        .when()
-            .put("/trainers/change-password")
-        .then()
-            .statusCode(200);
+        mockMvc.perform(put("/trainers/change-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(trainerDto)))
+                .andExpect(status().isOk());
 
         // 401 UNAUTHORIZED
 
         trainerDto.setUsername("invalid.invalid");
 
-        given()
-            .accept(ContentType.JSON)
-            .body(trainerDto)
-            .contentType(ContentType.JSON)
-        .when()
-            .put("/trainers/change-password")
-        .then()
-            .statusCode(401);
+        mockMvc.perform(put("/trainers/change-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(trainerDto)))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
     @DisplayName("Tests HTTP 200 & 404 on GET /trainees/{traineeUsername}/trainers/unassigned")
-    void getAllUnassignedForTraineeByUsername()
+    @WithMockUser(username = "Trainee.User", roles = "TRAINEE")
+    void getAllUnassignedForTraineeByUsername() throws Exception
     {
+        String traineeUsername = "Alice.Smith";
+
+        List<Trainer> unassignedTrainers = List.of(
+                new Trainer("Mike.Johnson"),
+                new Trainer("Laura.Williams"),
+                new Trainer("Larry.Williams")
+        );
+
+        doReturn(new PageImpl<>(unassignedTrainers))
+                .when(trainerService)
+                .getAllUnassignedForTraineeByUsername(eq(traineeUsername), any(Pageable.class));
+
         // 200 OK
 
-        String traineeUsername = "Alice.Smith";
-        given()
-            .header("Authorization", "Bearer " + TRAINEE_ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .get("/trainees/{traineeUsername}/trainers/unassigned", traineeUsername)
-        .then()
-            .statusCode(200)
-            .rootPath("_embedded.trainers")
-            .body("username", containsInAnyOrder("Mike.Johnson", "Laura.Williams", "Larry.Williams"));
+        mockMvc.perform(get("/trainees/{traineeUsername}/trainers/unassigned", traineeUsername)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.trainers[*].username",
+                        containsInAnyOrder("Mike.Johnson", "Laura.Williams", "Larry.Williams")));
 
         // 404 NOT_FOUND
 
         traineeUsername = "Unknown.Unknown";
-        given()
-            .header("Authorization", "Bearer " + TRAINEE_ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-        .when()
-            .get("/trainees/{traineeUsername}/trainers/unassigned", traineeUsername)
-        .then()
-            .statusCode(404);
+        mockMvc.perform(get("/trainees/{traineeUsername}/trainers/unassigned", traineeUsername)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
     }
 
     @Test
     @DisplayName("Tests HTTP 200 & 400 & 404 on PUT /trainees/{traineeUsername}/trainers/assigned")
-    void updateAssignedTrainersForTrainee()
+    @WithMockUser(username = "Trainee.User", roles = "TRAINEE")
+    void updateAssignedTrainersForTrainee() throws Exception
     {
         String traineeUsername = "Alice.Smith";
 
@@ -355,43 +324,32 @@ class TrainerControllerTest
 
         Set<TrainerModificationEmbeddedRequest> trainerDtos = Set.of(trainerDto);
 
-        given()
-            .header("Authorization", "Bearer " + TRAINEE_ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-            .body(trainerDtos)
-            .contentType(ContentType.JSON)
-        .when()
-            .put("/trainees/{traineeUsername}/trainers/assigned", traineeUsername)
-        .then()
-            .statusCode(200);
+        doAnswer(returnsSecondArg())
+                .when(trainerService)
+                .updateAssignedTrainersForTrainee(eq("Alice.Smith"), anySet());
+
+        mockMvc.perform(put("/trainees/{traineeUsername}/trainers/assigned", traineeUsername)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(trainerDtos)))
+                .andExpect(status().isOk());
 
         // 400 BAD_REQUEST
 
         trainerDto.setUsername(null);
 
-        given()
-            .header("Authorization", "Bearer " + TRAINEE_ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-            .body(trainerDtos)
-            .contentType(ContentType.JSON)
-        .when()
-            .put("/trainees/{traineeUsername}/trainers/assigned", traineeUsername)
-        .then()
-            .statusCode(400);
+        mockMvc.perform(put("/trainees/{traineeUsername}/trainers/assigned", traineeUsername)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(trainerDtos)))
+                .andExpect(status().isBadRequest());
 
         // 404 NOT_FOUND
 
         traineeUsername = "Unknown.Unknown";
         trainerDto.setUsername("Jane.Smith");
 
-        given()
-            .header("Authorization", "Bearer " + TRAINEE_ACCESS_TOKEN)
-            .accept(ContentType.JSON)
-            .body(trainerDtos)
-            .contentType(ContentType.JSON)
-        .when()
-            .put("/trainees/{traineeUsername}/trainers/assigned", traineeUsername)
-        .then()
-            .statusCode(404);
+        mockMvc.perform(put("/trainees/{traineeUsername}/trainers/assigned", traineeUsername)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(trainerDtos)))
+                .andExpect(status().isNotFound());
     }
 }

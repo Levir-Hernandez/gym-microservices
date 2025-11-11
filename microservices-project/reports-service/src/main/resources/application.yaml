@@ -44,3 +44,12 @@ logging:
 
 server:
   port: 8081
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: docker
+  activemq:
+    broker-url: tcp://activemq-server:61616  # For integration testing only

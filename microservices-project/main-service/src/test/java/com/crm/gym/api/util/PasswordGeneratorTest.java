@@ -1,26 +1,24 @@
 package com.crm.gym.api.util;
 
-import com.crm.gym.api.util.PasswordGenerator;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.Random;
 
-@SpringBootTest
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+@Tag("unit")
 @ActiveProfiles("test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class PasswordGeneratorTest
 {
     private PasswordGenerator passwordGenerator;
 
-    @Autowired
-    public PasswordGeneratorTest(PasswordGenerator passwordGenerator)
+    public PasswordGeneratorTest()
     {
-        this.passwordGenerator = passwordGenerator;
+        this.passwordGenerator = new PasswordGeneratorImpl(new Random());
     }
 
     @Test

@@ -27,6 +27,12 @@ public class TrainerWorkloadSummary
         workloadSummary = new HashMap<>();
     }
 
+    public TrainerWorkloadSummary(String trainerUsername)
+    {
+        this();
+        this.trainerUsername = trainerUsername;
+    }
+
     public TrainerWorkloadSummary(String trainerUsername, String trainerFirstname, String trainerLastname, Boolean trainerStatus)
     {
         this();
