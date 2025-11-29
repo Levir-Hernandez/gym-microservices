@@ -14,6 +14,7 @@ import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.testcontainers.containers.DockerComposeContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -32,9 +33,13 @@ public class StepDefinitions
     @Container
     private static final DockerComposeContainer<?> environment =
             new DockerComposeContainer<>(new File("../docker-compose.yml"))
-                    .withExposedService("activemq-server", 61616)
-                    .withExposedService("reports-service", 8081)
-                    .withExposedService("main-service", 8080);
+                    .waitingFor("activemq-broker", Wait.forHealthcheck())
+                    .waitingFor("postgres-db", Wait.forHealthcheck())
+                    .waitingFor("redis-db", Wait.forHealthcheck())
+                    .waitingFor("mongo-db", Wait.forHealthcheck())
+                    .withExposedService("main-service", 8080, Wait.forListeningPort())
+                    .withExposedService("reports-service", 8081, Wait.forListeningPort())
+                    .withRemoveVolumes(true);
 
     private static int mainPort;
     private static int reportsPort;

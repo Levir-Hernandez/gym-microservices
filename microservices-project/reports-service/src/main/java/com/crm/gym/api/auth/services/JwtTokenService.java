@@ -57,6 +57,8 @@ public class JwtTokenService
 
     private SecretKey toSigningKey(String secretKey)
     {
+        if(secretKey.isEmpty()){return Jwts.SIG.HS256.key().build();}
+
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }

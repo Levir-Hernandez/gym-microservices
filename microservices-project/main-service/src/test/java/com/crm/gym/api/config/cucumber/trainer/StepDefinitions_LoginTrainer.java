@@ -6,21 +6,28 @@ import com.crm.gym.api.dtos.trainer.TrainerLoginRequest;
 import com.crm.gym.api.entities.Trainer;
 import com.crm.gym.api.repositories.interfaces.TrainerRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.cucumber.java.BeforeAll;
 import io.cucumber.java.DataTableType;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
 import io.cucumber.spring.ScenarioScope;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
@@ -34,6 +41,17 @@ public class StepDefinitions_LoginTrainer
 
     @Autowired private ScenarioCommonContext scenarioCommonContext;
 
+    @Autowired private RedisTemplate<String, String> redisTemplate;
+    @Autowired private ValueOperations<String, String> valueOperations;
+
+    private static Map<String, Long> failedLoginAttempts;
+
+    @BeforeAll
+    public static void resetFailedLoginAttempts()
+    {
+        failedLoginAttempts = new HashMap<>();
+    }
+
     @Given("the following trainers' credentials:")
     public void theFollowingTrainersCredentials(List<Trainer> trainers)
     {
@@ -41,6 +59,27 @@ public class StepDefinitions_LoginTrainer
                 Mockito.when(trainerRepository.findByUsername(trainer.getUsername()))
                         .thenReturn(Optional.of(trainer))
         );
+    }
+
+    @And("none of the trainers are locked out")
+    public void noneOfTheTrainersAreLockedOut()
+    {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+
+        when(valueOperations.get(anyString())).thenAnswer(inv -> {
+            String username = inv.getArgument(0);
+            return Optional.ofNullable(failedLoginAttempts.get(username)).map(String::valueOf).orElse(null);
+        });
+
+        when(valueOperations.increment(anyString())).thenAnswer(inv -> {
+            String username = inv.getArgument(0);
+            return failedLoginAttempts.merge(username, 1L, Long::sum);
+        });
+
+        when(redisTemplate.delete(anyString())).thenAnswer(inv -> {
+            String username = inv.getArgument(0);
+            return Optional.ofNullable(failedLoginAttempts.remove(username)).isPresent();
+        });
     }
 
     @When("a request is made to log in with trainer username {string} and password {string}")

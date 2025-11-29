@@ -6,6 +6,7 @@ Feature: Login Trainer User
       | Username   | Password   |
       | John.Smith | 0123456789 |
       | Alice.Doe  | 9876543210 |
+    And none of the trainers are locked out
 
   @PositiveTest
   Scenario: Trainer log in with valid credentials

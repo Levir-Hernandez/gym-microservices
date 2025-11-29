@@ -19,9 +19,9 @@ FROM eclipse-temurin:23-jre
 WORKDIR /microservices-project
 
 ARG MODULE_NAME
-ENV APP_NAME=main-service
-ENV SPRING_PROFILES_ACTIVE=docker
 ARG VERSION=1.0-SNAPSHOT
+ENV APP_NAME=main-service
+ENV SPRING_PROFILES_ACTIVE=standalone
 
 COPY --from=build /microservices-project/${MODULE_NAME}/target/${APP_NAME}-${VERSION}.jar ${APP_NAME}.jar
 ENTRYPOINT ["sh", "-c", "java -jar /microservices-project/${APP_NAME}.jar"]

@@ -1,34 +1,121 @@
 services:
-  activemq-server:
-    image: apache/activemq-classic:6.1.3
+  main-service:
+    build:
+      context: .
+      dockerfile: main-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      ACTIVEMQ_USER: ${ACTIVEMQ_CONNECTION_USER}
+      ACTIVEMQ_PASSWORD: ${ACTIVEMQ_CONNECTION_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
-      - "61616:61616"
-      - "8161:8161"
+      - "8080:8080"
+    depends_on:
+      activemq-broker:
+        condition: service_healthy
+      postgres-db:
+        condition: service_healthy
+      redis-db:
+        condition: service_healthy
     networks:
-      - internal-net
+      - gym-network
 
   reports-service:
     build:
       context: .
       dockerfile: reports-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      ACTIVEMQ_USER: ${ACTIVEMQ_CONNECTION_USER}
+      ACTIVEMQ_PASSWORD: ${ACTIVEMQ_CONNECTION_PASSWORD}
+      MONGO_USER: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     ports:
       - "8081:8081"
     depends_on:
-      - activemq-server
+      activemq-broker:
+        condition: service_healthy
+      mongo-db:
+        condition: service_healthy
     networks:
-      - internal-net
+      - gym-network
 
-  main-service:
-    build:
-      context: .
-      dockerfile: main-service/Dockerfile
+  activemq-broker:
+    image: apache/activemq-classic:6.1.3
+    environment:
+      ACTIVEMQ_CONNECTION_USER: ${ACTIVEMQ_CONNECTION_USER}
+      ACTIVEMQ_CONNECTION_PASSWORD: ${ACTIVEMQ_CONNECTION_PASSWORD}
+      ACTIVEMQ_WEB_USER: ${ACTIVEMQ_WEB_USER}
+      ACTIVEMQ_WEB_PASSWORD: ${ACTIVEMQ_WEB_PASSWORD}
     ports:
-      - "8080:8080"
-    depends_on:
-      - reports-service
+      - "8161:8161"
     networks:
-      - internal-net
+      - gym-network
+    volumes:
+      - activemq-volume:/opt/apache-activemq/data
+    healthcheck:
+      test: bash -c '< /dev/tcp/localhost/61616'
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: gym_crm
+    networks:
+      - gym-network
+    volumes:
+      - postgres-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis-db:
+    image: redis:7
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    networks:
+      - gym-network
+    volumes:
+      - redis-snap-volume:/data
+    command: redis-server --requirepass ${REDIS_PASSWORD} --save 60 1 --loglevel warning
+    healthcheck:
+      test: redis-cli ping
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mongo-db:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: reports
+    volumes:
+      - mongo-volume:/data/db
+    networks:
+      - gym-network
+    healthcheck:
+      test: mongosh --eval "db.adminCommand('ping')"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  activemq-volume:
+  postgres-volume:
+  mongo-volume:
+  redis-snap-volume:
 
 networks:
-  internal-net:
+  gym-network:
     driver: bridge

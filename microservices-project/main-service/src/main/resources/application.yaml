@@ -3,15 +3,7 @@
 spring:
   application:
     name: main-service
-  datasource:
-    driver-class-name: org.h2.Driver
-    url: jdbc:h2:mem:gym_crm
-    username: admin
-    password: 12345
   activemq:
-    broker-url: tcp://localhost:61616
-    user: admin
-    password: admin
     queues:
       trainer-workload:
         get-one-request: trainer.workload.get_one.request.queue
@@ -38,7 +30,7 @@ management:
 
 auth:
   jwt:
-    secret-key: bGViZCtw0fI7UBWsFlOzXeRhDoZDrT4L3oSGt8+gvA4=
+    secret-key: ${JWT_SECRET_KEY:}
     access-token-expiration: 900 # 15 minutes
     refresh-token-expiration: 86400 # 24 hours
 
@@ -48,6 +40,38 @@ logging:
 
 server:
   port: 8080
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: local,dev,stg,prod
+  jpa:
+    hibernate:
+      ddl-auto: update
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://postgres-db:5432/gym_crm
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  data:
+    redis:
+      url: redis://:${REDIS_PASSWORD}@redis-db:6379
+  activemq:
+    broker-url: tcp://activemq-broker:61616
+    user: ${ACTIVEMQ_USER}
+    password: ${ACTIVEMQ_PASSWORD}
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: standalone
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:gym_crm
 
 ---
 
@@ -110,12 +134,3 @@ logging:
   user-credentials:
     show-username: true
     show-password: false
-
----
-
-spring:
-  config:
-    activate:
-      on-profile: docker
-  activemq:
-    broker-url: tcp://activemq-server:61616 # For integration testing only

@@ -19,7 +19,6 @@
     <description>gym CRM microservices system</description>
 
     <modules>
-        <module>activemq-server</module>
         <module>reports-service</module>
         <module>main-service</module>
         <module>integration-tests</module>
