@@ -26,7 +26,7 @@ public class TraineeRepositoryLogger extends UserRepositoryLogger<Trainee>
     // Pointcuts
 
     @Override
-    @Pointcut("target(com.crm.gym.repositories.interfaces.TraineeRepository)")
+    @Pointcut("target(com.crm.gym.api.repositories.interfaces.TraineeRepository)")
     public void target_EntityRepository() {}
 
     @Pointcut("execution(boolean deleteByUsernameIfExists(String))")

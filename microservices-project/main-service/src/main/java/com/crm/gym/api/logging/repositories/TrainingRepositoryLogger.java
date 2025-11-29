@@ -28,7 +28,7 @@ public class TrainingRepositoryLogger extends TemplateRepositoryLogger<UUID, Tra
     // Pointcuts
 
     @Override
-    @Pointcut("target(com.crm.gym.repositories.interfaces.TrainingRepository)")
+    @Pointcut("target(com.crm.gym.api.repositories.interfaces.TrainingRepository)")
     public void target_EntityRepository() {}
 
     @Pointcut("execution(* findByCriteria(..))")

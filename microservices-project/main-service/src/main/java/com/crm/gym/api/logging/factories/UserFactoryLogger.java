@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 public abstract class UserFactoryLogger<S extends User>
 {
     private final Logger logger;
-    protected final String IDENTIFIABLE = "com.crm.gym.repositories.interfaces.Identifiable";
+    protected final String IDENTIFIABLE = "com.crm.gym.api.repositories.interfaces.Identifiable";
 
     private boolean showUsername;
     private boolean showPassword;
@@ -23,7 +23,7 @@ public abstract class UserFactoryLogger<S extends User>
 
     public abstract void target_UserFactory();
 
-    @Pointcut("within(com.crm.gym.factories.UserFactory+)")
+    @Pointcut("within(com.crm.gym.api.factories.UserFactory+)")
     public void within_UserFactorySubclasses(){}
 
     @Pointcut("execution("+IDENTIFIABLE+" recreate("+IDENTIFIABLE+"))")

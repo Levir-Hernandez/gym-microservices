@@ -12,7 +12,7 @@ public abstract class TemplateRepositoryLogger<Id, Entity extends Identifiable<I
 {
     protected final Logger logger;
     protected final String OPTIONAL = "java.util.Optional";
-    protected final String IDENTIFIABLE = "com.crm.gym.repositories.interfaces.Identifiable";
+    protected final String IDENTIFIABLE = "com.crm.gym.api.repositories.interfaces.Identifiable";
 
     public TemplateRepositoryLogger(Logger logger)
     {
@@ -25,7 +25,7 @@ public abstract class TemplateRepositoryLogger<Id, Entity extends Identifiable<I
 
     public abstract void target_EntityRepository();
 
-    @Pointcut("within(com.crm.gym.repositories.interfaces.TemplateRepository+)")
+    @Pointcut("within(com.crm.gym.api.repositories.interfaces.TemplateRepository+)")
     public void within_TemplateRepositorySubclasses(){}
 
     @Pointcut("execution("+IDENTIFIABLE+" create("+IDENTIFIABLE+"))")

@@ -31,7 +31,7 @@ public class TrainerRepositoryLogger extends UserRepositoryLogger<Trainer>
     // Pointcuts
 
     @Override
-    @Pointcut("target(com.crm.gym.repositories.interfaces.TrainerRepository)")
+    @Pointcut("target(com.crm.gym.api.repositories.interfaces.TrainerRepository)")
     public void target_EntityRepository() {}
 
     @Pointcut("execution(* findAllUnassignedForTraineeByUsername(String,..))")

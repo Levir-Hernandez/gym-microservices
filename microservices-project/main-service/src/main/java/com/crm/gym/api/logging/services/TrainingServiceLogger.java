@@ -20,7 +20,7 @@ import java.util.function.ToIntFunction;
 public class TrainingServiceLogger extends TemplateServiceLogger<UUID, Training>
 {
     private final String LIST = "java.util.List";
-    private final String TRAINING_QUERY_CRITERIA = "com.crm.gym.repositories.TrainingQueryCriteria";
+    private final String TRAINING_QUERY_CRITERIA = "com.crm.gym.api.repositories.TrainingQueryCriteria";
 
     private final String PAGE = "org.springframework.data.domain.Page";
     private final String PAGEABLE = "org.springframework.data.domain.Pageable";

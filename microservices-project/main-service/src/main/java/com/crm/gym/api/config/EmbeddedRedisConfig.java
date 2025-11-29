@@ -1,12 +1,14 @@
 package com.crm.gym.api.config;
 
 import java.io.IOException;
+
+import org.springframework.context.annotation.Profile;
 import redis.embedded.RedisServer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-// For local testing without docker-compose
 @Configuration
+@Profile("standalone")
 public class EmbeddedRedisConfig
 {
     @Bean(initMethod = "start", destroyMethod = "stop")

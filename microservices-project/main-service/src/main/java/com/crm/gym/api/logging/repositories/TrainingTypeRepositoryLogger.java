@@ -22,6 +22,6 @@ public class TrainingTypeRepositoryLogger extends TemplateRepositoryLogger<UUID,
     protected Class<TrainingType> getEntityClass() {return TrainingType.class;}
 
     @Override
-    @Pointcut("target(com.crm.gym.repositories.interfaces.TrainingTypeRepository)")
+    @Pointcut("target(com.crm.gym.api.repositories.interfaces.TrainingTypeRepository)")
     public void target_EntityRepository() {}
 }

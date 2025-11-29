@@ -10,7 +10,7 @@ import java.util.Objects;
 public abstract class TemplateServiceLogger<Id, Entity extends Identifiable<Id>>
 {
     protected final Logger logger;
-    private final String IDENTIFIABLE = "com.crm.gym.repositories.interfaces.Identifiable";
+    private final String IDENTIFIABLE = "com.crm.gym.api.repositories.interfaces.Identifiable";
 
     public TemplateServiceLogger(Logger logger)
     {

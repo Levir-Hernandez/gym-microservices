@@ -20,6 +20,6 @@ public class TrainerFactoryLogger extends UserFactoryLogger<Trainer>
     protected Class<Trainer> getUserClass() {return Trainer.class;}
 
     @Override
-    @Pointcut("target(com.crm.gym.factories.TrainerFactory)")
+    @Pointcut("target(com.crm.gym.api.factories.TrainerFactory)")
     public void target_UserFactory() {}
 }

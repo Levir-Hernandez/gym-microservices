@@ -11,7 +11,7 @@ import java.util.UUID;
 
 public abstract class UserRepositoryLogger<S extends User> extends TemplateRepositoryLogger<UUID, S>
 {
-    private final String USER = "com.crm.gym.entities.User";
+    private final String USER = "com.crm.gym.api.entities.User";
     protected final String OPTIONAL = "java.util.Optional";
 
     public UserRepositoryLogger(Logger logger)

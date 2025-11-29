@@ -1,4 +1,4 @@
-package com.crm.gym.dao;
+package com.crm.gym.dtos;
 
 import lombok.Getter;
 import lombok.Setter;

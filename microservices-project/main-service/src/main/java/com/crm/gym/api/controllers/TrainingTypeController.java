@@ -2,7 +2,7 @@ package com.crm.gym.api.controllers;
 
 import com.crm.gym.api.dtos.mappers.interfaces.TrainingTypeMapper;
 import com.crm.gym.api.dtos.trainingType.TrainingTypeDto;
-import com.crm.gym.api.repositories.interfaces.TrainingTypeRepository;
+import com.crm.gym.api.services.TrainingTypeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -28,13 +28,13 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Training Types", description = "Operations related to training types")
 public class TrainingTypeController
 {
-    private TrainingTypeRepository trainingTypeRepository;
+    private TrainingTypeService trainingTypeService;
     private TrainingTypeMapper trainingTypeMapper;
     private PagedResourcesAssembler<TrainingTypeDto> pagedAssembler;
 
-    public TrainingTypeController(TrainingTypeRepository trainingTypeRepository, TrainingTypeMapper trainingTypeMapper, PagedResourcesAssembler<TrainingTypeDto> pagedAssembler)
+    public TrainingTypeController(TrainingTypeService trainingTypeService, TrainingTypeMapper trainingTypeMapper, PagedResourcesAssembler<TrainingTypeDto> pagedAssembler)
     {
-        this.trainingTypeRepository = trainingTypeRepository;
+        this.trainingTypeService = trainingTypeService;
         this.trainingTypeMapper = trainingTypeMapper;
         this.pagedAssembler = pagedAssembler;
     }
@@ -59,7 +59,7 @@ public class TrainingTypeController
     {
         Pageable pageable = PageRequest.of(page, size);
         return pagedAssembler.toModel(
-                trainingTypeRepository.findAll(pageable).map(trainingTypeMapper::toDto)
+                trainingTypeService.getAllEntities(pageable).map(trainingTypeMapper::toDto)
         );
     }
 }

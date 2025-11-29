@@ -19,6 +19,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
@@ -59,7 +61,10 @@ class TrainerControllerTest
 
     @MockitoSpyBean private TrainerService trainerService;
     @MockitoBean private TrainerRepository trainerRepository;
+
     @MockitoBean private EntityResourceLoader entityResourceLoader;
+    @MockitoBean private RedisTemplate<String, String> redisTemplate;
+    @MockitoBean private ValueOperations<String, String> valueOperations;
 
     @Test
     @DisplayName("Tests HTTP 201 & 400 on POST /trainers")
@@ -217,6 +222,8 @@ class TrainerControllerTest
     @DisplayName("Tests HTTP 200 & 401 on POST /trainers/login")
     void login() throws Exception
     {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+
         when(trainerService.login("Trainer.User", "0123456789"))
                 .thenReturn(true);
 
@@ -248,6 +255,8 @@ class TrainerControllerTest
     @DisplayName("Tests HTTP 200 & 401 on PUT trainers/change-password")
     void changePassword() throws Exception
     {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+
         when(trainerService.changePassword("Trainer.User",
                 "0123456789", "abcdefghij"))
                 .thenReturn(true);

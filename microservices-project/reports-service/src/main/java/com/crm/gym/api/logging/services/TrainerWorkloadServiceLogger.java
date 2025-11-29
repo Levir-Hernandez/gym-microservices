@@ -3,7 +3,6 @@ package com.crm.gym.api.logging.services;
 import com.crm.gym.api.entities.TrainerWorkloadSummary;
 import com.crm.gym.api.services.TrainerWorkloadService;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;

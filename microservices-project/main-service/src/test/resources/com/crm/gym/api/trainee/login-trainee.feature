@@ -6,6 +6,7 @@ Feature: Login Trainee User
       | Username    | Password   |
       | John.Doe    | 0123456789 |
       | Alice.Smith | 9876543210 |
+    And none of the trainees are locked out
 
   @PositiveTest
   Scenario: Trainee log in with valid credentials

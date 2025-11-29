@@ -1,7 +1,7 @@
 package com.crm.gym.api.controllers;
 
 import com.crm.gym.api.entities.TrainingType;
-import com.crm.gym.api.repositories.interfaces.TrainingTypeRepository;
+import com.crm.gym.api.services.TrainingTypeService;
 import com.crm.gym.api.util.EntityResourceLoader;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -37,7 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class TrainingTypeControllerTest
 {
     @Autowired private MockMvc mockMvc;
-    @MockitoBean private TrainingTypeRepository trainingTypeRepository;
+    @MockitoBean private TrainingTypeService trainingTypeService;
     @MockitoBean private EntityResourceLoader entityResourceLoader;
 
     private static Page<TrainingType> trainingTypesMock;
@@ -54,13 +54,13 @@ class TrainingTypeControllerTest
     @WithMockUser(username = "Trainer.User", roles = {"TRAINER"})
     void getAllTrainingTypes() throws Exception
     {
-        when(trainingTypeRepository.findAll(any(Pageable.class)))
+        when(trainingTypeService.getAllEntities(any(Pageable.class)))
                 .thenReturn(trainingTypesMock);
 
         mockMvc.perform(get("/trainingTypes")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(trainingTypeRepository).findAll(any(Pageable.class));
+        verify(trainingTypeService).getAllEntities(any(Pageable.class));
     }
 }

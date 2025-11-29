@@ -11,7 +11,7 @@ import java.util.UUID;
 
 public abstract class UserServiceLogger<S extends User> extends TemplateServiceLogger<UUID, S>
 {
-    private final String USER = "com.crm.gym.entities.User";
+    private final String USER = "com.crm.gym.api.entities.User";
 
     public UserServiceLogger(Logger logger)
     {
